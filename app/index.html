@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#194AA6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MJC Table">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>MJC Table 학생식당</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
+<script>
+  window.tailwind = window.tailwind || {};
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          blue:  { 50: '#E8F3FF', 100: '#C9E2FF', 200: '#90C2FF', 300: '#64A8FF', 400: '#5498F8', 500: '#3182F6', 600: '#2272EB', 700: '#1B64DA', 800: '#1957C2', 900: '#194AA6' },
+          slate: { 50: '#F9FAFB', 100: '#F2F4F6', 200: '#E5E8EB', 300: '#D1D6DB', 400: '#B0B8C1', 500: '#6B7684', 600: '#4E5968', 700: '#333D4B', 800: '#333D4B', 900: '#191F28' }
+        },
+        fontFamily: { sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', '"Apple SD Gothic Neo"', '"Malgun Gothic"', 'system-ui', 'sans-serif'] }
+      }
+    }
+  };
+</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+  body { font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; letter-spacing: -0.012em; word-break: keep-all; }
+  h1, h2, h3 { letter-spacing: -0.03em; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; }
+  button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #5498F8; outline-offset: 2px; }
+  .sheet { transform: translateY(102%); transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1); }
+  .sheet.open { transform: translateY(0); }
+  .fade { opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+  .fade.open { opacity: 1; pointer-events: auto; }
+  .cartbar { transform: translateY(140%); transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .cartbar.show { transform: translateY(0); }
+  @keyframes pop { 0% { transform: scale(0.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  .pop { animation: pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .rise { animation: rise 0.25s ease-out; }
+  @keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+  .dots span { animation: blink 1.2s infinite; }
+  .dots span:nth-child(2) { animation-delay: 0.15s; }
+  .dots span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .ring-draw { stroke-dasharray: 190; stroke-dashoffset: 190; animation: draw 0.6s 0.1s ease-out forwards; }
+  .tick-draw { stroke-dasharray: 48; stroke-dashoffset: 48; animation: draw 0.35s 0.6s ease-out forwards; }
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } .ring-draw, .tick-draw { stroke-dashoffset: 0; } }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-900 antialiased">
+
+<div id="app" class="relative max-w-[430px] mx-auto min-h-screen bg-white shadow-xl shadow-slate-900/5">
+  <main id="view" class="pb-40"></main>
+</div>
+
+<!-- 장바구니 바 -->
+<div class="fixed inset-x-0 z-30 pointer-events-none" style="bottom: calc(76px + env(safe-area-inset-bottom, 0px));">
+  <div class="max-w-[430px] mx-auto px-3">
+    <button id="cartBar" onclick="openCart()" class="cartbar pointer-events-auto w-full rounded-2xl bg-slate-900 text-white shadow-2xl shadow-slate-900/30 p-2 pl-4 flex items-center gap-3">
+      <span id="cartCount" class="w-8 h-8 rounded-full bg-white text-blue-700 text-[14px] font-bold flex items-center justify-center tnum">0</span>
+      <span class="flex-1 text-left leading-tight">
+        <span id="cartTotal" class="block text-[16px] font-bold tnum">0원</span>
+        <span id="cartSub" class="block text-[12px] text-slate-400 truncate">지금 바로 받기</span>
+      </span>
+      <span class="h-12 px-5 rounded-xl bg-blue-500 text-[17px] font-extrabold flex items-center">주문하기</span>
+    </button>
+  </div>
+</div>
+
+<!-- 하단 탭바 -->
+<nav class="fixed inset-x-0 bottom-0 z-30" style="padding-bottom: env(safe-area-inset-bottom, 0px);" aria-label="하단 메뉴">
+  <div id="tabbar" class="max-w-[430px] mx-auto bg-white/95 backdrop-blur border-t border-slate-100 h-[68px] grid grid-cols-4"></div>
+</nav>
+
+<!-- 메뉴 상세 -->
+<div id="detailBackdrop" class="fade fixed inset-0 z-40 bg-slate-900/40" onclick="closeDetail()"></div>
+<section id="detailSheet" class="sheet fixed inset-x-0 bottom-0 z-50" role="dialog" aria-modal="true">
+  <div id="detailBody" class="max-w-[430px] mx-auto bg-white rounded-t-[28px] max-h-[94vh] overflow-y-auto"></div>
+</section>
+
+<!-- 장바구니·결제 -->
+<div id="cartBackdrop" class="fade fixed inset-0 z-40 bg-slate-900/40" onclick="closeCart()"></div>
+<section id="cartSheet" class="sheet fixed inset-x-0 bottom-0 z-50" role="dialog" aria-modal="true" aria-label="주문 확인">
+  <div id="cartBody" class="max-w-[430px] mx-auto bg-white rounded-t-[28px] max-h-[92vh] flex flex-col"></div>
+</section>
+
+<!-- 주문 완료 -->
+<div id="doneLayer" class="fade fixed inset-0 z-[60] bg-slate-900/50 flex items-center justify-center p-5">
+  <div id="doneCard" class="w-full max-w-[380px] bg-white rounded-[28px] p-6"></div>
+</div>
+
+<!-- 알림 -->
+<div id="toast" class="fixed left-1/2 top-4 z-[70] -translate-x-1/2 transition-all duration-300 opacity-0 -translate-y-3 pointer-events-none w-[calc(100%-32px)] max-w-[398px]">
+  <div class="bg-slate-900/95 backdrop-blur text-white rounded-2xl px-4 py-3 shadow-xl text-[14px] font-semibold flex items-center gap-2.5">
+    <span id="toastIcon" class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center shrink-0"><i data-lucide="check" class="w-4 h-4"></i></span>
+    <span id="toastText" class="flex-1"></span>
+  </div>
+</div>
+
+<script src="../shared/forecast.js"></script>
+<script src="../shared/store.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="../shared/supabase-sync.js"></script>
+<script src="../shared/ai.js"></script>
+<script>
+/* =====================================================================
+   MJC Table 학생 앱
+   ===================================================================== */
+const S = window.Store;
+const PAY = [
+  { id: 'toss', label: '토스페이', icon: 'smartphone' },
+  { id: 'kakao', label: '카카오페이', icon: 'smartphone' },
+  { id: 'card', label: '신용·체크카드', icon: 'credit-card' },
+  { id: 'campus', label: '학생증', icon: 'id-card' }
+];
+const CHIPS = ['고기 말고 국물 있는 거', '10분 안에 받을 수 있는 메뉴', '오늘 남은 칼로리에 맞춰 줘', '어제랑 다른 거 추천해 줘', '단백질 많은 메뉴'];
+
+const state = {
+  tab: 'home', category: '전체', sort: 'fast',
+  cart: [], pickup: 'now', pay: 'toss',
+  detailId: null, detailQty: 1, detailOpts: { rice: '보통', sauce: false }, detailReq: '',
+  chat: [], chatBusy: false,
+  lastRaw: '', knownStatus: {}, toastTimer: null, doneTimer: null,
+  server: { ready: false, reason: 'checking' }
+};
+/* 개발자 설정(키 입력칸)은 주소 끝에 ?dev=1 을 붙였을 때만 보여요. ?dev=0 으로 다시 숨겨요 */
+const DEV = (function () {
+  const q = new URLSearchParams(location.search).get('dev');
+  if (q === '1') { S.writeRaw('smartorder.devMode', '1'); }
+  if (q === '0') { S.removeKey('smartorder.devMode'); }
+  return S.readRaw('smartorder.devMode') === '1';
+})();
+
+/* ---------- 공통 ---------- */
+const won = S.won;
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function icons() { if (window.lucide) { window.lucide.createIcons(); } }
+function menus() { return S.getMenus().filter(m => m.visible !== false); }
+function menu(id) { return S.getMenus().find(m => m.menu_id === Number(id)); }
+function hasBatchim(w) { const c = w.charCodeAt(w.length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 !== 0; }
+function josa(w, a, b) { return w + (hasBatchim(w) ? a : b); }
+function photo(m, cls) {
+  const tone = m.tone || ['#F2F4F6', '#E5E8EB'];
+  const ill = `<span class="absolute inset-0 flex items-center justify-center" style="background: linear-gradient(135deg, ${tone[0]}, ${tone[1]}); container-type: inline-size"><span class="flex items-center justify-center rounded-full bg-white/55" style="width: 64%; aspect-ratio: 1"><span class="leading-none select-none" style="font-size: 34cqw">${m.emoji}</span></span></span>`;
+  return `<span class="relative block overflow-hidden bg-slate-100 ${cls}">${ill}${m.image ? `<img src="${m.image}" alt="" class="absolute inset-0 w-full h-full object-cover" onerror="this.remove()">` : ''}</span>`;
+}
+function restPhoto(r, cls) {
+  return photo({ emoji: r.emoji, tone: r.tone, image: r.coverImage }, cls);
+}
+function toast(text, icon) {
+  const el = document.getElementById('toast');
+  document.getElementById('toastText').textContent = text;
+  document.getElementById('toastIcon').innerHTML = `<i data-lucide="${icon || 'check'}" class="w-4 h-4"></i>`;
+  icons();
+  el.classList.remove('opacity-0', '-translate-y-3');
+  clearTimeout(state.toastTimer);
+  state.toastTimer = setTimeout(() => el.classList.add('opacity-0', '-translate-y-3'), 2600);
+}
+function tag(text, tone) {
+  const t = { gray: 'bg-slate-100 text-slate-600', blue: 'bg-blue-50 text-blue-800', red: 'bg-rose-50 text-rose-700', dark: 'bg-slate-900 text-white' }[tone || 'gray'];
+  return `<span class="inline-flex items-center h-[22px] px-1.5 rounded-md text-[11px] font-bold ${t}">${text}</span>`;
+}
+
+/* ---------- 개인 맞춤 추천 (앱 안에서 바로 계산) ---------- */
+function todayPicks() {
+  /* 비회원 '오늘의 추천 메뉴': 오늘 많이 팔린 메뉴 + 지금 빨리 나오는 메뉴 (모두에게 같음) */
+  const pred = S.predict();
+  const sold = {};
+  S.getOrders().forEach(o => { if (o.order_status !== 'CANCELED') { o.items.forEach(i => { sold[i.menu_name] = (sold[i.menu_name] || 0) + i.quantity; }); } });
+  return menus().filter(m => m.orderable)
+    .map(m => ({ m, score: (sold[m.name] || 0) * 3 - S.menuWait(m, pred) / 4 }))
+    .sort((a, b) => b.score - a.score).slice(0, 6).map(x => ({ menu: x.m, sold: sold[x.m.name] || 0 }));
+}
+function personalPick() {
+  const p = S.getProfile();
+  const intake = S.todayIntake();
+  const pred = S.predict();
+  const y = p.history.find(h => h.daysAgo === 1);
+  const yMenu = y ? menu(y.menu_id) : null;
+  let list = menus().filter(m => m.orderable);
+  const reasons = [];
+  if (yMenu) {
+    list = list.filter(m => m.menu_id !== yMenu.menu_id);
+    if (yMenu.spicy) { const mild = list.filter(m => !m.spicy); if (mild.length) { list = mild; reasons.push('어제 매운 걸 드셨어요'); } }
+  }
+  const fit = list.filter(m => m.kcal <= Math.max(500, intake.remain));
+  if (fit.length) { list = fit; }
+  list.sort((a, b) => S.menuWait(a, pred) - S.menuWait(b, pred) || b.protein - a.protein);
+  const pick = list[0];
+  if (!pick) { return null; }
+  reasons.push(`남은 ${intake.remain.toLocaleString('ko-KR')}kcal 안`);
+  reasons.push(`지금 ${S.menuWait(pick, pred)}분`);
+  return { menu: pick, reasons, yMenu };
+}
+
+/* ---------- 탭바 ---------- */
+function renderTabbar() {
+  const active = S.myOrders().filter(o => ['WAITING', 'COOKING', 'READY'].includes(o.order_status)).length;
+  const tabs = [
+    { id: 'home', label: '홈', icon: 'house' },
+    { id: 'menu', label: '메뉴', icon: 'utensils' },
+    { id: 'ai', label: 'AI 추천', icon: 'sparkles', center: true },
+    { id: 'my', label: '마이', icon: 'user', badge: active }
+  ];
+  document.getElementById('tabbar').innerHTML = tabs.map(t => {
+    const on = state.tab === t.id || (t.id === 'home' && state.tab === 'restaurant') || (t.id === 'my' && state.tab === 'orders');
+    if (t.center) {
+      return `<button onclick="go('${t.id}')" class="flex flex-col items-center justify-center gap-0.5" aria-label="${t.label}" ${on ? 'aria-current="page"' : ''}>
+        <span class="w-8 h-8 rounded-xl ${on ? 'bg-blue-700' : 'bg-blue-500'} text-white flex items-center justify-center"><i data-lucide="${t.icon}" class="w-[18px] h-[18px]"></i></span>
+        <span class="text-[11px] font-bold ${on ? 'text-blue-700' : 'text-slate-500'}">${t.label}</span></button>`;
+    }
+    return `<button onclick="go('${t.id}')" class="relative flex flex-col items-center justify-center gap-1" ${on ? 'aria-current="page"' : ''}>
+      <i data-lucide="${t.icon}" class="w-[22px] h-[22px] ${on ? 'text-slate-900' : 'text-slate-400'}" stroke-width="${on ? 2.4 : 2}"></i>
+      <span class="text-[11px] ${on ? 'font-bold text-slate-900' : 'font-medium text-slate-500'}">${t.label}</span>
+      ${t.badge ? `<span class="absolute top-2 left-1/2 ml-2 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">${t.badge}</span>` : ''}</button>`;
+  }).join('');
+}
+
+function go(tab, opts) {
+  state.tab = tab;
+  if (opts && opts.category) { state.category = opts.category; }
+  if (opts && opts.restaurant) { state.restaurantId = opts.restaurant; }
+  render();
+  window.scrollTo(0, 0);
+  if (tab === 'ai' && opts && opts.ask) { sendChat(opts.ask); }
+  if (tab === 'ai') { setTimeout(() => { const i = document.getElementById('chatInput'); if (i && !(opts && opts.ask)) { i.focus({ preventScroll: true }); } }, 200); }
+}
+
+/* ---------- 홈 ---------- */
+/* 전에 먹은 메뉴: 이 기기의 최근 주문 → (회원이면) 지난 학식 기록 */
+function lastMeal() {
+  const mine = S.myOrders().filter(o => o.order_status !== 'CANCELED').sort((a, b) => b.order_time - a.order_time);
+  if (mine.length) {
+    const it = mine[0].items[0];
+    const m = menu(it.menu_id) || S.menuByName(it.menu_name);
+    if (m) { return { menu: m, when: '최근' }; }
+  }
+  if (S.isMember()) {
+    const h = S.getProfile().history.slice().sort((a, b) => a.daysAgo - b.daysAgo)[0];
+    const m = h ? menu(h.menu_id) : null;
+    if (m) { return { menu: m, when: h.daysAgo === 1 ? '어제' : h.daysAgo + '일 전' }; }
+  }
+  return null;
+}
+
+function bannerHTML() {
+  const p = S.predict();
+  const o = S.openState();
+  const levelColor = p.level === '혼잡' ? 'bg-rose-400' : p.level === '보통' ? 'bg-amber-300' : 'bg-emerald-300';
+  const headline = !o.open ? (o.next ? `${o.next}에 다시 열어요` : '오늘 영업이 끝났어요')
+    : p.recTime && p.saving >= 5 ? `${p.recTime}에 오면<br>${p.recWait}분이면 받아요`
+    : `지금 주문하면<br>${p.currentWait}분이면 받아요`;
+  return `<section aria-label="AI 대기 예측" class="mt-5">
+    <div class="flex items-center gap-2">
+      <span class="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center"><i data-lucide="sparkles" class="w-4 h-4"></i></span>
+      <span class="text-[15px] font-bold">AI 대기 예측</span>
+      <button onclick="openWhy()" class="ml-auto h-8 px-3 rounded-full bg-white/15 text-[12px] font-semibold">왜 이 시간인가요?</button>
+    </div>
+    <p class="mt-3 text-[25px] leading-[33px] font-extrabold">${headline}</p>
+    <div class="mt-4 grid grid-cols-3 gap-2">
+      <div class="rounded-2xl bg-white/10 px-3 py-2.5"><p class="text-[12px] text-white/85">평균 대기</p><p class="mt-0.5 text-[20px] font-extrabold tnum">${p.currentWait}분</p></div>
+      <div class="rounded-2xl bg-white/10 px-3 py-2.5"><p class="text-[12px] text-white/85">혼잡도</p><p class="mt-0.5 text-[20px] font-extrabold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full ${levelColor}"></span>${p.level}</p></div>
+      <div class="rounded-2xl bg-white/10 px-3 py-2.5"><p class="text-[12px] text-white/85">AI 추천</p><p class="mt-0.5 text-[20px] font-extrabold text-blue-100 tnum">${p.recTime || '지금'}</p></div>
+    </div>
+    ${(() => {
+      const showReserve = o.open && p.recTime && p.saving >= 5;
+      const last = lastMeal();
+      if (!showReserve && !last) { return ''; }
+      return `<div class="mt-4 flex gap-2">
+        ${showReserve ? `<button onclick="chooseReserve()" class="flex-1 min-w-0 h-14 px-4 rounded-2xl bg-white text-blue-900 flex items-center gap-2 text-left">
+          <i data-lucide="calendar-clock" class="w-5 h-5 shrink-0"></i>
+          <span class="min-w-0"><span class="block text-[15px] font-bold whitespace-nowrap">${p.recTime} 예약 주문</span><span class="block text-[11px] font-semibold text-blue-700">${p.saving}분 덜 기다려요</span></span></button>` : ''}
+        ${last ? `<button onclick="openDetail(${last.menu.menu_id})" class="${showReserve ? 'w-[150px] shrink-0' : 'flex-1'} h-14 pl-2 pr-3 rounded-2xl bg-white/15 flex items-center gap-2 text-left" aria-label="${last.when} 먹은 메뉴 ${last.menu.name} 다시 보기">
+          ${photo(last.menu, 'w-10 h-10 rounded-xl shrink-0')}
+          <span class="min-w-0"><span class="block text-[11px] text-white/85 whitespace-nowrap">${last.when} 먹은</span><span class="block text-[13px] font-bold truncate">${last.menu.short}</span></span></button>` : ''}
+      </div>`;
+    })()}
+  </section>`;
+}
+
+function renderHome() {
+  const o = S.openState();
+  const pred = S.predict();
+  const member = S.isMember();
+  const prof = S.getProfile();
+  const pick = member ? personalPick() : null;
+  const picks = member ? [] : todayPicks();
+  const fast = menus().filter(m => m.orderable).sort((a, b) => S.menuWait(a, pred) - S.menuWait(b, pred)).slice(0, 6);
+  const rests = S.getRestaurants();
+  return `
+  <header class="bg-blue-900 text-white px-5 pt-[max(14px,env(safe-area-inset-top))] pb-10">
+    <div class="flex items-center gap-2 h-11">
+      <i data-lucide="map-pin" class="w-[18px] h-[18px] text-blue-200 shrink-0"></i>
+      <span class="text-[17px] font-bold truncate">명지전문대 학생식당</span>
+      <span class="ml-auto shrink-0 h-7 px-2.5 rounded-full text-[12px] font-bold flex items-center gap-1.5 whitespace-nowrap ${o.open ? 'bg-white/15' : 'bg-rose-500/30'}"><span class="w-1.5 h-1.5 rounded-full ${o.open ? 'bg-emerald-300' : 'bg-rose-300'}"></span>${o.open ? '영업 중' : o.label}${o.until ? ' ~' + o.until : ''}</span>
+    </div>
+    <button onclick="go('ai')" class="mt-3 w-full h-12 rounded-full bg-white text-left px-5 flex items-center gap-2 text-[15px] text-slate-500">
+      <span class="flex-1">오늘은 뭐 먹지? "고기 말고 국물"</span><i data-lucide="search" class="w-5 h-5 text-slate-900"></i>
+    </button>
+    ${bannerHTML()}
+  </header>
+
+  <div class="relative -mt-5 bg-white rounded-t-3xl pt-6">
+    ${member && pick ? `<section class="px-5">
+      <h2 class="text-[20px] font-extrabold">${esc(prof.name)}님을 위한 오늘 추천</h2>
+      <button onclick="openDetail(${pick.menu.menu_id})" class="mt-3 w-full text-left rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex">
+        ${photo(pick.menu, 'w-[120px] h-[136px] shrink-0')}
+        <span class="flex-1 p-4 flex flex-col">
+          <span class="flex flex-wrap gap-1">${pick.reasons.map(r => tag(r, 'blue')).join('')}</span>
+          <span class="mt-2 text-[17px] font-extrabold leading-snug">${pick.menu.name}</span>
+          <span class="text-[12px] text-slate-500">${pick.menu.restaurantName}</span>
+          <span class="mt-auto text-[15px] font-bold tnum">${won(pick.menu.price)} <span class="text-[13px] font-medium text-slate-500">${pick.menu.kcal}kcal</span></span>
+        </span>
+      </button>
+    </section>` : ''}
+    ${!member ? `<section>
+      <div class="px-5 flex items-baseline justify-between"><h2 class="text-[20px] font-extrabold">오늘의 추천 메뉴</h2><span class="text-[12px] text-slate-500">오늘 인기와 대기 기준</span></div>
+      <div class="mt-3 flex gap-3 overflow-x-auto no-scrollbar px-5 pb-1">
+        ${picks.map(x => `<button onclick="openDetail(${x.menu.menu_id})" class="shrink-0 w-[150px] text-left">
+          <span class="relative block">${photo(x.menu, 'w-[150px] h-[112px] rounded-2xl')}
+            <span class="absolute left-2 bottom-2 h-6 px-2 rounded-full bg-white text-[12px] font-bold flex items-center gap-1"><i data-lucide="timer" class="w-3.5 h-3.5 text-blue-500"></i>${S.menuWait(x.menu, pred)}분</span>
+            ${x.sold ? `<span class="absolute left-2 top-2 h-6 px-2 rounded-full bg-slate-900/80 text-white text-[11px] font-bold flex items-center">오늘 ${x.sold}그릇</span>` : ''}</span>
+          <span class="block mt-2 text-[15px] font-bold leading-tight">${x.menu.name}</span>
+          <span class="block text-[12px] text-slate-500">${x.menu.restaurantName}</span>
+          <span class="block mt-0.5 text-[15px] font-extrabold tnum">${won(x.menu.price)}</span>
+        </button>`).join('')}
+      </div>
+      <div class="mx-5 mt-4 rounded-2xl bg-blue-50 p-4 flex items-center gap-3">
+        <span class="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center shrink-0"><i data-lucide="user" class="w-5 h-5"></i></span>
+        <p class="flex-1 text-[13px] leading-snug text-blue-900"><b class="text-[14px]">로그인하면 나만의 추천</b><br>어제 먹은 메뉴와 남은 칼로리까지 보고 골라 드려요</p>
+        <button onclick="doLogin()" class="h-10 px-3.5 rounded-xl bg-blue-700 text-white text-[13px] font-bold shrink-0">로그인</button>
+      </div>
+    </section>` : ''}
+
+    <div class="mt-7 grid grid-cols-5 gap-x-1 gap-y-4 px-3" role="list" aria-label="식당">
+      ${rests.map(r => `<button role="listitem" onclick="go('restaurant', { restaurant: '${r.id}' })" class="flex flex-col items-center gap-1.5 ${r.open ? '' : 'opacity-50'}" aria-label="${r.name}${r.open ? '' : ' (오늘 휴무)'}">
+        ${restPhoto(r, 'w-14 h-14 rounded-2xl')}
+        <span class="text-[12px] font-medium leading-tight text-slate-700 text-center break-keep">${r.name}</span>
+        ${r.open ? '' : '<span class="-mt-1 text-[11px] font-bold text-rose-600">휴무</span>'}
+      </button>`).join('')}
+    </div>
+
+
+    <div class="h-2 bg-slate-100 mt-7"></div>
+
+    <section class="pt-6 pb-4">
+      <div class="px-5 flex items-baseline justify-between"><h2 class="text-[20px] font-extrabold">지금 가장 빨리 나와요</h2><button onclick="state.sort='fast'; go('menu')" class="text-[14px] font-semibold text-slate-500">전체보기</button></div>
+      <p class="px-5 mt-1 text-[12px] text-slate-500">AI 시간대 예측과 식당별 주방 대기열을 합쳐 계산해요</p>
+      <div class="mt-4 flex gap-3 overflow-x-auto no-scrollbar px-5 pb-1">
+        ${fast.map(m => `<button onclick="openDetail(${m.menu_id})" class="shrink-0 w-[150px] text-left">
+          <span class="relative block">${photo(m, 'w-[150px] h-[112px] rounded-2xl')}
+            <span class="absolute left-2 bottom-2 h-6 px-2 rounded-full bg-white text-[12px] font-bold flex items-center gap-1"><i data-lucide="timer" class="w-3.5 h-3.5 text-blue-500"></i>${S.menuWait(m, pred)}분</span></span>
+          <span class="block mt-2 text-[15px] font-bold leading-tight">${m.name}</span>
+          <span class="block text-[12px] text-slate-500">${m.restaurantName}</span>
+          <span class="block mt-0.5 text-[15px] font-extrabold tnum">${won(m.price)}</span>
+        </button>`).join('')}
+      </div>
+    </section>
+  </div>`;
+}
+
+/* ---------- 식당 상세 ---------- */
+function renderRestaurant() {
+  const r = S.restaurantById(state.restaurantId) || S.getRestaurants()[0];
+  const pred = S.predict();
+  const list = menus().filter(m => m.restaurant === r.id).sort((a, b) => (b.orderable - a.orderable) || S.menuWait(a, pred) - S.menuWait(b, pred));
+  const q = pred.queues[r.id] || 0;
+  return `
+  <div class="relative">
+    ${restPhoto(r, 'w-full h-[220px]')}
+    <div class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-slate-900/30 to-transparent"></div>
+    <button onclick="go('home')" class="absolute left-3 w-11 h-11 rounded-full bg-white/90 shadow flex items-center justify-center" style="top: max(12px, env(safe-area-inset-top))" aria-label="홈으로"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+  </div>
+  <div class="relative -mt-6 bg-white rounded-t-3xl px-5 pt-6">
+    <p class="text-[13px] font-semibold text-blue-700">${r.category}</p>
+    <h1 class="text-[26px] font-extrabold leading-tight">${r.name}</h1>
+    <p class="mt-1 text-[14px] text-slate-600">${r.desc}</p>
+    <div class="mt-4 grid grid-cols-3 gap-2 text-center">
+      <div class="rounded-2xl bg-slate-50 py-3"><p class="text-[12px] text-slate-600">지금 받으면</p><p class="mt-0.5 text-[18px] font-extrabold tnum">${r.open ? '약 ' + S.restaurantWait(r.id, pred) + '분' : '-'}</p></div>
+      <div class="rounded-2xl bg-slate-50 py-3"><p class="text-[12px] text-slate-600">주방 대기</p><p class="mt-0.5 text-[18px] font-extrabold tnum">${q ? q + '분 분량' : '없음'}</p></div>
+      <div class="rounded-2xl bg-slate-50 py-3"><p class="text-[12px] text-slate-600">메뉴</p><p class="mt-0.5 text-[18px] font-extrabold tnum">${list.length}개</p></div>
+    </div>
+    ${r.open ? '' : '<p class="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-[14px] font-semibold text-rose-700">오늘은 이 식당이 쉬어요. 다른 식당 메뉴를 골라 주세요.</p>'}
+    <ul class="mt-3">${list.map(m => rowHTML(m, pred)).join('')}</ul>
+  </div>`;
+}
+
+function rowHTML(m, pred) {
+  const reason = !m.restaurantOpen ? '오늘 쉬어요' : m.sold_out ? '품절' : '';
+  return `<li class="py-4 border-b border-slate-100 last:border-0 flex gap-4 ${m.orderable ? '' : 'opacity-50'}">
+    <button onclick="openDetail(${m.menu_id})" class="flex-1 min-w-0 text-left flex flex-col gap-1">
+      <span class="flex gap-1">${tag(m.tag)}${reason ? tag(reason, 'red') : ''}</span>
+      <span class="text-[17px] font-extrabold">${m.name}</span>
+      <span class="text-[13px] text-slate-500 leading-snug">${m.desc}</span>
+      <span class="text-[15px] font-extrabold tnum">${won(m.price)} <span class="text-[12px] font-medium text-slate-500">지금 ${S.menuWait(m, pred)}분 · ${m.kcal}kcal</span></span>
+    </button>
+    <span class="relative shrink-0">
+      ${photo(m, 'w-24 h-24 rounded-xl')}
+      ${m.orderable ? `<button onclick="quickAdd(${m.menu_id})" aria-label="${m.name} 담기" class="absolute -right-1 -bottom-1 w-11 h-11 flex items-center justify-center"><span class="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center"><i data-lucide="plus" class="w-5 h-5"></i></span></button>` : ''}
+    </span>
+  </li>`;
+}
+
+/* ---------- 메뉴 탭 ---------- */
+function renderMenu() {
+  const pred = S.predict();
+  const cats = ['전체', '밥', '면', '돈까스', '분식', '국물'];
+  const sorts = [['fast', '빠른순'], ['price', '가격순'], ['protein', '고단백'], ['kcal', '칼로리 낮은순']];
+  let list = menus().filter(m => (state.category === '전체' || m.category === state.category) && (!state.soupOnly || m.soup));
+  const key = { fast: m => S.menuWait(m, pred), price: m => m.price, protein: m => -m.protein, kcal: m => m.kcal }[state.sort];
+  list.sort((a, b) => (b.orderable - a.orderable) || key(a) - key(b));
+  return `
+  <header class="sticky top-0 z-10 bg-white/95 backdrop-blur pt-[max(10px,env(safe-area-inset-top))]">
+    <h1 class="px-5 h-12 flex items-center text-[22px] font-extrabold">오늘의 메뉴</h1>
+    <div class="flex gap-5 px-5 border-b border-slate-100 overflow-x-auto no-scrollbar">
+      ${cats.map(c => `<button onclick="state.category='${c}'; render()" class="h-11 shrink-0 text-[16px] ${state.category === c ? 'font-extrabold text-slate-900 border-b-2 border-slate-900' : 'font-medium text-slate-500'}">${c}</button>`).join('')}
+    </div>
+    <div class="flex gap-2 px-5 py-3 overflow-x-auto no-scrollbar">
+      ${sorts.map(([k, l]) => `<button onclick="state.sort='${k}'; render()" class="shrink-0 h-9 px-3.5 rounded-full text-[14px] font-semibold ${state.sort === k ? 'bg-slate-900 text-white' : 'border border-slate-200 text-slate-700'}">${l}</button>`).join('')}
+      <button onclick="state.soupOnly=!state.soupOnly; render()" aria-pressed="${!!state.soupOnly}" class="shrink-0 h-9 px-3.5 rounded-full text-[14px] font-semibold ${state.soupOnly ? 'bg-blue-50 text-blue-800 ring-2 ring-blue-500' : 'border border-slate-200 text-slate-700'}">국물 있는 것만</button>
+    </div>
+  </header>
+  <div class="px-5">
+    <p class="pt-1 text-[13px] text-slate-500">${list.length}개 메뉴</p>
+    ${list.length ? list.map(m => `<article class="py-4 border-b border-slate-100 last:border-0 ${m.orderable ? '' : 'opacity-50'}">
+      <button onclick="openDetail(${m.menu_id})" class="relative block w-full text-left">
+        ${photo(m, 'w-full h-[188px] rounded-2xl')}
+        <span class="absolute top-3 left-3 h-7 px-2.5 rounded-full bg-white text-[12px] font-bold flex items-center">${m.tag}</span>
+        <span class="absolute left-3 bottom-3 h-7 px-2.5 rounded-full bg-white text-[12px] font-bold flex items-center gap-1"><i data-lucide="timer" class="w-3.5 h-3.5 text-blue-500"></i>지금 주문 시 ${S.menuWait(m, pred)}분</span>
+        ${m.orderable ? '' : `<span class="absolute inset-0 rounded-2xl bg-white/60 flex items-center justify-center"><span class="h-8 px-3 rounded-full bg-slate-900 text-white text-[13px] font-bold flex items-center">${m.restaurantOpen ? '오늘 준비한 수량이 다 나갔어요' : '오늘은 식당이 쉬어요'}</span></span>`}
+      </button>
+      <div class="mt-3 flex items-start gap-3">
+        <button onclick="openDetail(${m.menu_id})" class="flex-1 text-left">
+          <span class="block text-[12px] font-semibold text-blue-700">${m.restaurantName}</span>
+          <span class="block text-[18px] font-extrabold">${m.name}</span>
+          <span class="block mt-0.5 text-[13px] text-slate-500">${m.kcal}kcal · 단백질 ${m.protein}g · ${m.desc}</span>
+        </button>
+        <span class="text-right shrink-0"><span class="block text-[17px] font-extrabold tnum">${won(m.price)}</span>
+          ${m.orderable ? `<button onclick="quickAdd(${m.menu_id})" class="mt-2 h-9 px-3 rounded-full bg-blue-50 text-blue-700 text-[13px] font-bold">담기</button>` : ''}</span>
+      </div>
+    </article>`).join('') : '<p class="py-16 text-center text-slate-500">이 분류에는 오늘 준비한 메뉴가 없어요.</p>'}
+  </div>`;
+}
+
+/* ---------- AI 추천 탭 ---------- */
+function engineLabel() {
+  if (state.server.ready) { return 'AI 연결됨'; }
+  const c = window.MJCAI.getConfig();
+  if (window.MJCAI.hasLocalKey()) { return c.provider === 'baze' ? 'BAZE · ' + (c.bazeModel || '모델 미지정') : 'Claude'; }
+  return state.server.reason === 'checking' ? '확인 중' : '기본 추천';
+}
+function renderAI() {
+  const intake = S.todayIntake();
+  const pred = S.predict();
+  const msgs = state.chat.length ? state.chat.map(chatHTML).join('') : `
+    <div class="rise rounded-3xl bg-blue-50 p-5">
+      <p class="text-[17px] font-extrabold text-blue-900">무엇이든 말로 물어보세요</p>
+      <p class="mt-1.5 text-[14px] leading-relaxed text-blue-900/80">${S.isMember() ? `5개 식당 45개 메뉴, 식당별 주방 대기, ${esc(S.getProfile().name)}님의 남은 칼로리(${intake.remain.toLocaleString('ko-KR')}kcal)와 최근 주문을 함께 보고 골라 드려요.` : '5개 식당 45개 메뉴와 식당별 주방 대기를 보고 골라 드려요. 로그인하면 남은 칼로리와 최근 주문까지 반영해요.'} 시간 안에 받기 어려우면 예약도 권해 드려요.</p>
+      <p class="mt-3 text-[12px] text-blue-800">지금 대기 ${pred.currentWait}분 · ${pred.recTime ? pred.recTime + '에 오면 ' + pred.recWait + '분' : '바로 주문 가능'}</p>
+    </div>`;
+  return `
+  <header class="sticky top-0 z-10 bg-white/95 backdrop-blur pt-[max(10px,env(safe-area-inset-top))] border-b border-slate-100">
+    <div class="h-14 px-5 flex items-center gap-2.5">
+      <span class="w-9 h-9 rounded-xl bg-blue-500 text-white flex items-center justify-center"><i data-lucide="sparkles" class="w-5 h-5"></i></span>
+      <div class="leading-tight"><h1 class="text-[17px] font-extrabold">AI 메뉴 추천</h1><p class="text-[12px] text-slate-500">말로 찾고, 바로 주문까지</p></div>
+      <span class="ml-auto h-7 px-2.5 rounded-full bg-slate-100 text-[12px] font-bold text-slate-600 flex items-center">${engineLabel()}</span>
+    </div>
+  </header>
+  <div id="chatList" class="px-4 pt-4 pb-44 space-y-3">${msgs}</div>
+  <div class="fixed inset-x-0 z-20" style="bottom: calc(68px + env(safe-area-inset-bottom, 0px));">
+    <div class="max-w-[430px] mx-auto bg-white border-t border-slate-100 px-3 pt-2.5 pb-3">
+      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-2.5">${CHIPS.map(c => `<button onclick="sendChat('${c}')" class="shrink-0 h-9 px-3.5 rounded-full border border-slate-200 text-[13px] font-semibold text-slate-700">${c}</button>`).join('')}</div>
+      <form onsubmit="event.preventDefault(); submitChat();" class="flex gap-2">
+        <input id="chatInput" autocomplete="off" placeholder="예: 10분 안에 나오는 순한 국물 메뉴" class="flex-1 min-w-0 h-12 rounded-2xl bg-slate-100 px-4 text-[15px] outline-none focus:bg-white focus:ring-2 focus:ring-blue-500">
+        <button class="w-12 h-12 rounded-2xl bg-blue-500 text-white flex items-center justify-center" aria-label="보내기" ${state.chatBusy ? 'disabled' : ''}><i data-lucide="send" class="w-5 h-5"></i></button>
+      </form>
+    </div>
+  </div>`;
+}
+
+function chatHTML(msg) {
+  if (msg.role === 'user') {
+    return `<div class="flex justify-end rise"><p class="max-w-[80%] rounded-[20px] rounded-br-md bg-blue-700 text-white px-4 py-2.5 text-[15px] leading-relaxed">${esc(msg.text)}</p></div>`;
+  }
+  if (msg.loading) {
+    return `<div class="flex gap-2 rise"><span class="w-8 h-8 rounded-xl bg-blue-500 text-white flex items-center justify-center shrink-0"><i data-lucide="sparkles" class="w-4 h-4"></i></span>
+      <p class="rounded-[20px] rounded-tl-md bg-slate-100 px-4 py-3 text-[14px] text-slate-600 flex items-center gap-2">메뉴와 대기열을 살펴보는 중 <span class="dots flex gap-0.5 text-blue-500"><span>●</span><span>●</span><span>●</span></span></p></div>`;
+  }
+  const r = msg.result;
+  const pred = r.pred || S.predict();
+  const rows = (r.menus || []).map(m => `<div class="flex items-center gap-3 rounded-2xl bg-slate-50 p-2.5">
+      ${photo(m, 'w-14 h-14 rounded-xl shrink-0')}
+      <button onclick="openDetail(${m.menu_id})" class="flex-1 min-w-0 text-left"><span class="block text-[15px] font-bold truncate">${m.name}</span>
+        <span class="block text-[12px] text-slate-600">지금 ${S.menuWait(m, pred)}분 · ${m.kcal}kcal · ${won(m.price)}</span></button>
+      <button onclick="quickAdd(${m.menu_id})" class="w-11 h-11 flex items-center justify-center" aria-label="${m.name} 담기"><span class="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center"><i data-lucide="plus" class="w-4 h-4"></i></span></button>
+    </div>`).join('');
+  const top = (r.menus || [])[0];
+  let action = '';
+  if (top && r.action && r.action.type === 'reserve' && pred.recTime) {
+    action = `<button onclick="aiReserve(${(r.action.menu_id || top.menu_id)})" class="mt-3 w-full h-12 rounded-2xl bg-blue-700 text-white text-[15px] font-bold flex items-center justify-center gap-1.5"><i data-lucide="calendar-clock" class="w-[18px] h-[18px]"></i>${menu(r.action.menu_id || top.menu_id).short} ${pred.recTime} 예약으로 담기</button>`;
+  } else if (top && r.action && r.action.type === 'add') {
+    action = `<button onclick="aiAdd(${(r.action.menu_id || top.menu_id)})" class="mt-3 w-full h-12 rounded-2xl bg-blue-700 text-white text-[15px] font-bold">${menu(r.action.menu_id || top.menu_id).short} 바로 담기</button>`;
+  }
+  const engine = r.engine === 'llm' ? `${esc(r.model || 'AI')} 모델이 답했어요${r.via === 'server' ? ' (서버 연결)' : ''}` : '규칙 기반으로 답했어요';
+  return `<div class="flex gap-2 rise"><span class="w-8 h-8 rounded-xl bg-blue-500 text-white flex items-center justify-center shrink-0"><i data-lucide="sparkles" class="w-4 h-4"></i></span>
+    <div class="flex-1 min-w-0 rounded-[20px] rounded-tl-md bg-white border border-slate-100 shadow-sm p-4">
+      <p class="text-[15px] leading-relaxed">${esc(r.reply)}</p>
+      ${rows ? `<div class="mt-3 space-y-2">${rows}</div>` : ''}
+      ${action}
+      <details class="mt-3 rounded-xl bg-slate-50">
+        <summary class="px-3 py-2 text-[12px] font-semibold text-slate-600 flex items-center gap-1"><i data-lucide="database" class="w-3.5 h-3.5"></i>AI가 만든 SQL 보기</summary>
+        <pre class="px-3 pb-3 text-[11px] leading-relaxed text-slate-700 whitespace-pre-wrap break-all">${esc(r.sql)}</pre>
+      </details>
+      <p class="mt-2 text-[11px] text-slate-500">${engine}${r.error ? ' · ' + esc(r.error) : ''}</p>
+    </div></div>`;
+}
+
+function submitChat() {
+  const input = document.getElementById('chatInput');
+  const q = input.value.trim();
+  if (!q || state.chatBusy) { return; }
+  input.value = '';
+  sendChat(q);
+}
+async function sendChat(q) {
+  if (state.chatBusy) { return; }
+  if (state.tab !== 'ai') { state.tab = 'ai'; }
+  const history = state.chat.filter(m => !m.loading).slice(-4).map(m => m.role === 'user' ? { role: 'user', content: m.text } : { role: 'assistant', content: m.result ? m.result.reply : '' });
+  state.chat.push({ role: 'user', text: q });
+  state.chat.push({ role: 'bot', loading: true });
+  state.chatBusy = true;
+  render(); scrollChat();
+  let result;
+  try { result = await window.MJCAI.ask(q, history); }
+  catch (e) { result = { engine: 'rule', sql: '', reply: '지금은 추천을 불러오지 못했어요. 인터넷 연결을 확인하고 다시 물어봐 주세요.', menus: [], action: { type: 'none' }, error: e.message }; }
+  state.chat.pop();
+  state.chat.push({ role: 'bot', result });
+  S.bumpAIStats(result.engine);
+  state.chatBusy = false;
+  if (state.tab === 'ai') { render(); scrollChat(); }
+}
+function scrollChat() { setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 50); }
+function markAI(id) { const l = state.cart.find(x => x.id === Number(id)); if (l) { l.fromAI = true; } }
+function aiReserve(id) { addToCart(id, 1, { rice: '보통', sauce: false }, ''); markAI(id); state.pickup = 'reserve'; renderCartBar(); openCart(); toast('예약 주문으로 담았어요', 'calendar-clock'); }
+function aiAdd(id) { addToCart(id, 1, { rice: '보통', sauce: false }, ''); markAI(id); renderCartBar(); toast(menu(id).name + ' 담았어요'); }
+
+/* ---------- 주문내역 탭 ---------- */
+const STEP = { WAITING: 0, COOKING: 1, READY: 2, PICKED_UP: 3 };
+function renderOrders() {
+  const mine = S.myOrders().slice().sort((a, b) => b.order_time - a.order_time);
+  const active = mine.filter(o => ['WAITING', 'COOKING', 'READY'].includes(o.order_status));
+  const done = mine.filter(o => !['WAITING', 'COOKING', 'READY'].includes(o.order_status));
+  const prof = S.getProfile();
+  const activeHTML = active.map(o => {
+    const ready = o.order_status === 'READY';
+    const step = STEP[o.order_status];
+    const eta = o.pickup_type === 'RESERVED' ? o.pickup_time + ' 예약' : S.hhmm(o.order_time + (o.eta_minutes || 10) * S.MIN) + ' 전후';
+    return `<article class="rounded-3xl p-5 ${ready ? 'bg-blue-800 text-white' : 'bg-white border border-slate-100 shadow-sm'}">
+      <div class="flex items-center gap-2">${tag('주문번호 ' + S.orderNo(o.order_number), ready ? 'dark' : 'gray')}${o.pickup_type === 'RESERVED' ? tag(o.pickup_time + ' 예약', 'blue') : ''}</div>
+      <h2 class="mt-3 text-[24px] font-extrabold">${ready ? S.orderNo(o.order_number) + ' 나왔어요!' : o.order_status === 'COOKING' ? '조리하고 있어요' : '주문을 접수했어요'}</h2>
+      <p class="mt-1 text-[14px] ${ready ? 'text-white/90' : 'text-slate-600'}">${ready ? '학생회관 1층 수령대로 와 주세요' : '받는 시간 ' + eta}</p>
+      <div class="mt-4 h-1.5 rounded-full ${ready ? 'bg-white/25' : 'bg-slate-100'} overflow-hidden"><div class="h-full rounded-full ${ready ? 'bg-white' : 'bg-blue-500'}" style="width:${[18, 55, 100][step]}%"></div></div>
+      <ol class="mt-2 grid grid-cols-3 text-[12px] font-semibold">
+        <li class="${step >= 0 ? (ready ? 'text-white' : 'text-blue-700') : 'text-slate-400'}">접수</li>
+        <li class="text-center ${step >= 1 ? (ready ? 'text-white' : 'text-blue-700') : 'text-slate-400'}">조리 중</li>
+        <li class="text-right ${step >= 2 ? 'text-white' : 'text-slate-400'}">픽업 대기</li></ol>
+      <p class="mt-4 text-[14px] ${ready ? 'text-white/90' : 'text-slate-600'}">${o.items.map(i => i.menu_name + ' ' + i.quantity + '개').join(', ')} · ${won(o.total_price)}</p>
+    </article>`;
+  }).join('');
+  const past = done.map(o => `<li class="py-3 flex items-center gap-3 border-b border-slate-100 last:border-0">
+      ${photo(menu(o.items[0].menu_id) || S.menuByName(o.items[0].menu_name), 'w-12 h-12 rounded-xl shrink-0')}
+      <div class="flex-1 min-w-0"><p class="text-[15px] font-bold truncate">${o.items.map(i => i.menu_name).join(', ')}</p><p class="text-[12px] text-slate-500">오늘 ${S.hhmm(o.order_time)} · ${won(o.total_price)} · ${o.order_status === 'CANCELED' ? '취소' : '수령 완료'}</p></div>
+      <button onclick="quickAdd(${o.items[0].menu_id})" class="h-9 px-3 rounded-full border border-slate-200 text-[13px] font-bold">다시 담기</button></li>`).join('');
+  const hist = !S.isMember() ? '' : prof.history.slice().sort((a, b) => a.daysAgo - b.daysAgo).map(h => { const m = menu(h.menu_id); if (!m) { return ''; }
+    return `<li class="py-3 flex items-center gap-3 border-b border-slate-100 last:border-0">${photo(m, 'w-12 h-12 rounded-xl shrink-0')}
+      <div class="flex-1 min-w-0"><p class="text-[15px] font-bold truncate">${m.name}</p><p class="text-[12px] text-slate-500">${h.daysAgo === 1 ? '어제' : h.daysAgo + '일 전'} · ${won(m.price)}</p></div>
+      <button onclick="quickAdd(${m.menu_id})" class="h-9 px-3 rounded-full border border-slate-200 text-[13px] font-bold">다시 담기</button></li>`; }).join('');
+  return `
+  <header class="pt-[max(10px,env(safe-area-inset-top))] px-2 flex items-center gap-1">
+    <button onclick="go('my')" class="w-11 h-11 flex items-center justify-center" aria-label="마이로 돌아가기"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
+    <h1 class="h-12 flex items-center text-[22px] font-extrabold">주문내역</h1></header>
+  <div class="px-5 space-y-3">${activeHTML || `<div class="rounded-3xl bg-slate-50 p-6 text-center"><p class="text-[16px] font-bold">진행 중인 주문이 없어요</p><p class="mt-1 text-[14px] text-slate-500">AI 추천에서 오늘 메뉴를 골라 보세요.</p><button onclick="go('ai')" class="mt-4 h-11 px-5 rounded-full bg-blue-500 text-white text-[15px] font-bold">AI 추천 받기</button></div>`}</div>
+  <section class="px-5 mt-8"><h2 class="text-[18px] font-extrabold">지난 주문</h2>${S.isMember() ? '' : '<p class="mt-1 text-[13px] text-slate-500">비회원 주문내역은 이 기기에서만 보여요. 로그인하면 지난 학식 기록도 볼 수 있어요.</p>'}<ul class="mt-1">${past}${hist}</ul></section>`;
+}
+
+/* ---------- 마이 탭 ---------- */
+function renderMy() {
+  const p = S.getProfile();
+  const intake = S.todayIntake();
+  const pct = Math.min(1, intake.total / intake.goal);
+  const R = 46, C = 2 * Math.PI * R;
+  const cfg = window.MJCAI.getConfig();
+  const avoidOptions = ['돼지고기', '소고기', '달걀', '고추', '유제품'];
+  return `
+  <header class="pt-[max(10px,env(safe-area-inset-top))] px-5 flex items-center"><h1 class="h-12 flex items-center text-[22px] font-extrabold">마이</h1>
+    ${S.isMember() ? '<button onclick="doLogout()" class="ml-auto h-9 px-3 rounded-full border border-slate-200 text-[13px] font-semibold text-slate-600">로그아웃</button>' : ''}</header>
+  ${(() => {
+    const mine = S.myOrders().slice().sort((x, y) => y.order_time - x.order_time);
+    const act = mine.filter(o => ['WAITING', 'COOKING', 'READY'].includes(o.order_status));
+    const ready = act.find(o => o.order_status === 'READY');
+    const sub = ready ? S.orderNo(ready.order_number) + ' 나왔어요! 수령대로 와 주세요'
+      : act.length ? '진행 중인 주문 ' + act.length + '건 · ' + act[0].items.map(i => i.menu_name).join(', ')
+      : mine.length ? '최근 ' + mine[0].items.map(i => i.menu_name).join(', ')
+      : '아직 주문한 메뉴가 없어요';
+    return `<section class="px-5 mb-6"><button onclick="go('orders')" class="w-full rounded-2xl border ${ready ? 'border-blue-500 bg-blue-50' : 'border-slate-100'} p-4 flex items-center gap-3 text-left">
+      <span class="w-10 h-10 rounded-xl ${ready ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-700'} flex items-center justify-center shrink-0"><i data-lucide="receipt" class="w-5 h-5"></i></span>
+      <span class="flex-1 min-w-0"><span class="block text-[16px] font-bold">주문 내역</span><span class="block text-[13px] ${ready ? 'text-blue-800 font-semibold' : 'text-slate-500'} truncate">${esc(sub)}</span></span>
+      ${act.length ? `<span class="min-w-[22px] h-[22px] px-1.5 rounded-full bg-rose-500 text-white text-[12px] font-bold flex items-center justify-center">${act.length}</span>` : ''}
+      <i data-lucide="chevron-right" class="w-5 h-5 text-slate-400"></i>
+    </button></section>`;
+  })()}
+  ${S.isMember() ? `  <section class="px-5">
+    <div class="rounded-3xl bg-slate-50 p-5 flex items-center gap-5">
+      <svg width="112" height="112" viewBox="0 0 112 112" role="img" aria-label="오늘 ${intake.total}kcal 섭취, 목표 ${intake.goal}kcal">
+        <circle cx="56" cy="56" r="${R}" fill="none" stroke="#E5E8EB" stroke-width="10"></circle>
+        <circle cx="56" cy="56" r="${R}" fill="none" stroke="${intake.remain < 0 ? '#F04452' : '#3182F6'}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - pct)}" transform="rotate(-90 56 56)"></circle>
+        <text x="56" y="54" text-anchor="middle" font-size="20" font-weight="800" fill="#191F28">${intake.total.toLocaleString('ko-KR')}</text>
+        <text x="56" y="72" text-anchor="middle" font-size="11" fill="#4E5968">/ ${intake.goal.toLocaleString('ko-KR')}kcal</text>
+      </svg>
+      <div class="flex-1">
+        <p class="text-[14px] text-slate-600">${esc(p.name)}님의 오늘</p>
+        <p class="mt-1 text-[22px] font-extrabold leading-tight">${intake.remain >= 0 ? intake.remain.toLocaleString('ko-KR') + 'kcal<br>더 먹을 수 있어요' : (-intake.remain).toLocaleString('ko-KR') + 'kcal<br>넘었어요'}</p>
+        <div class="mt-2 flex items-center gap-2 text-[13px]"><span class="text-slate-600 whitespace-nowrap">하루 목표</span>
+          <button onclick="setGoal(-100)" class="w-8 h-8 rounded-full border border-slate-200" aria-label="목표 줄이기">−</button>
+          <span class="font-bold tnum">${p.dailyGoal.toLocaleString('ko-KR')}</span>
+          <button onclick="setGoal(100)" class="w-8 h-8 rounded-full border border-slate-200" aria-label="목표 늘리기">+</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="px-5 mt-7">
+    <h2 class="text-[18px] font-extrabold">오늘 먹은 것</h2>
+    <ul class="mt-2">${intake.meals.map((m, i) => `<li class="py-3 flex items-center gap-3 border-b border-slate-100 last:border-0">
+      <span class="w-10 h-10 rounded-xl ${m.fromOrder ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'} flex items-center justify-center"><i data-lucide="${m.fromOrder ? 'utensils' : 'coffee'}" class="w-[18px] h-[18px]"></i></span>
+      <div class="flex-1 min-w-0"><p class="text-[15px] font-semibold truncate">${esc(m.label)}</p><p class="text-[12px] text-slate-500">${m.time}${m.fromOrder ? ' · 학식 주문에서 자동 기록' : ''}</p></div>
+      <span class="text-[15px] font-bold tnum">${m.kcal}kcal</span>
+      ${m.fromOrder ? '' : `<button onclick="removeMeal(${i})" class="w-9 h-9 flex items-center justify-center text-slate-400" aria-label="삭제"><i data-lucide="x" class="w-4 h-4"></i></button>`}</li>`).join('')}</ul>
+    <form onsubmit="event.preventDefault(); addMeal();" class="mt-3 flex gap-2">
+      <input id="mealName" placeholder="먹은 것 (예: 아메리카노)" class="flex-1 min-w-0 h-11 rounded-xl bg-slate-100 px-3 text-[14px] outline-none focus:ring-2 focus:ring-blue-500">
+      <input id="mealKcal" type="number" inputmode="numeric" placeholder="kcal" class="w-20 h-11 rounded-xl bg-slate-100 px-3 text-[14px] outline-none focus:ring-2 focus:ring-blue-500">
+      <button class="h-11 px-4 rounded-xl bg-slate-900 text-white text-[14px] font-bold">기록</button>
+    </form>
+  </section>
+
+  <section class="px-5 mt-8">
+    <h2 class="text-[18px] font-extrabold">취향</h2>
+    <p class="mt-3 text-[14px] font-semibold text-slate-600">매운맛</p>
+    <div class="mt-2 flex gap-2">${['좋아요', '보통', '못 먹어요'].map(v => `<button onclick="setSpicy('${v}')" class="h-10 px-4 rounded-full text-[14px] font-semibold ${p.spicy === v ? 'bg-slate-900 text-white' : 'border border-slate-200'}">${v}</button>`).join('')}</div>
+    <p class="mt-4 text-[14px] font-semibold text-slate-600">피할 재료</p>
+    <div class="mt-2 flex flex-wrap gap-2">${avoidOptions.map(v => `<button onclick="toggleAvoid('${v}')" class="h-10 px-4 rounded-full text-[14px] font-semibold ${p.avoid.includes(v) ? 'bg-blue-50 text-blue-800 ring-2 ring-blue-500' : 'border border-slate-200'}">${v}</button>`).join('')}</div>
+    <p class="mt-2 text-[12px] text-slate-500">AI 추천이 이 취향과 오늘 먹은 양을 함께 봐요.</p>
+  </section>
+  ` : `  <section class="px-5">
+    <div class="rounded-3xl bg-blue-50 p-5">
+      <p class="text-[20px] font-extrabold text-blue-900 leading-snug">로그인하면<br>나에게 맞춰 추천해요</p>
+      <ul class="mt-3 space-y-1.5 text-[14px] text-blue-900/90">
+        <li class="flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4 text-blue-500"></i>어제 먹은 메뉴와 취향을 보고 골라 줘요</li>
+        <li class="flex items-center gap-2"><i data-lucide="flame" class="w-4 h-4 text-blue-500"></i>학식 주문이 칼로리 기록에 자동으로 쌓여요</li>
+        <li class="flex items-center gap-2"><i data-lucide="receipt" class="w-4 h-4 text-blue-500"></i>주문내역을 어느 기기에서든 볼 수 있어요</li>
+      </ul>
+      <button onclick="doLogin()" class="mt-4 w-full h-12 rounded-2xl bg-blue-700 text-white text-[16px] font-bold">데모 계정으로 로그인</button>
+      <p class="mt-2 text-[12px] text-blue-900/70">경진대회 시연용 계정이에요. 실제 서비스에서는 학교 계정 로그인으로 바꿀 예정이에요.</p>
+    </div>
+    <p class="mt-3 text-[13px] text-slate-500">로그인하지 않아도 주문, 예약, AI 추천을 모두 쓸 수 있어요.</p>
+  </section>
+`}
+
+  ${DEV ? '' : `<section class="px-5 mt-8">
+    <h2 class="text-[18px] font-extrabold">AI 추천</h2>
+    <div class="mt-3 rounded-2xl ${state.server.ready ? 'bg-blue-50' : 'bg-slate-50'} p-4 flex items-start gap-3">
+      <span class="w-9 h-9 rounded-xl ${state.server.ready ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'} flex items-center justify-center shrink-0"><i data-lucide="sparkles" class="w-[18px] h-[18px]"></i></span>
+      <div><p class="text-[15px] font-bold ${state.server.ready ? 'text-blue-900' : ''}">${state.server.ready ? 'AI 추천을 쓸 수 있어요' : '기본 추천으로 동작 중이에요'}</p>
+      <p class="mt-0.5 text-[13px] leading-relaxed ${state.server.ready ? 'text-blue-900/80' : 'text-slate-600'}">${state.server.ready ? '말로 물어보면 AI가 오늘 메뉴, 대기 시간, 남은 칼로리를 보고 골라 줘요. 따로 설정할 건 없어요.' : '말로 물어보면 정해진 규칙으로 메뉴를 찾아 줘요.'}</p></div>
+    </div>
+  </section>`}
+  ${DEV ? `<section class="px-5 mt-8">
+    <h2 class="text-[18px] font-extrabold">AI 연결 <span class="text-[12px] font-bold text-rose-600">개발자 설정</span></h2>
+    <p class="mt-1 text-[13px] ${state.server.ready ? 'text-blue-700' : 'text-slate-600'}">서버: ${state.server.ready ? '연결됨 · ' + esc(state.server.provider + ' / ' + state.server.model) : ({ local: '파일로 열어서 서버 함수 없음', nofunction: '서버 함수를 찾지 못함', nokey: '환경 변수에 키가 없음', error: '서버 오류', checking: '확인 중' }[state.server.reason] || '없음')}</p>
+    <div class="mt-3 rounded-2xl border border-slate-100 p-4">
+      <p class="text-[14px] font-semibold">${/^https?:/.test(location.protocol) ? '배포한 사이트는 서버 함수를 먼저 쓰고, 없으면 아래 설정을 써요.' : '이 기기에 AI 키를 넣으면 말로 하는 추천이 AI로 바뀌어요.'}</p>
+      <p class="mt-1 text-[12px] text-slate-500">키는 이 휴대폰 브라우저에만 저장되고 서버로 올라가지 않아요. 시연이 끝나면 지워 주세요.</p>
+      <div class="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="AI 제공처">
+        ${[['baze', '학교 BAZE'], ['claude', 'Claude API']].map(([id, label]) => `<button role="radio" aria-checked="${cfg.provider === id}" onclick="setProvider('${id}')" class="h-11 rounded-xl text-[14px] font-bold ${cfg.provider === id ? 'bg-slate-900 text-white' : 'border border-slate-200'}">${label}</button>`).join('')}
+      </div>
+      <form onsubmit="event.preventDefault(); saveAI();" class="mt-3 space-y-2">
+        ${cfg.provider === 'baze' ? `
+        <label class="block text-[12px] font-semibold text-slate-600">모델 ID <span class="font-normal text-slate-500">(BAZE 콘솔 → 모델 탭에서 복사)</span></label>
+        <input id="modelInput" autocomplete="off" value="${esc(cfg.bazeModel)}" placeholder="사용할 모델 ID" class="w-full h-11 rounded-xl bg-slate-100 px-3 text-[14px] outline-none focus:ring-2 focus:ring-blue-500">
+        <label class="block text-[12px] font-semibold text-slate-600">API 키</label>
+        <input id="keyInput" type="password" autocomplete="off" placeholder="${cfg.bazeKey ? '저장된 키 있음 (…' + esc(cfg.bazeKey.slice(-4)) + ')' : 'BAZE에서 만든 API 키'}" class="w-full h-11 rounded-xl bg-slate-100 px-3 text-[14px] outline-none focus:ring-2 focus:ring-blue-500">
+        <details class="rounded-xl bg-slate-50 px-3 py-2"><summary class="text-[12px] font-semibold text-slate-600">고급: 게이트웨이 주소</summary>
+          <input id="baseInput" autocomplete="off" value="${esc(cfg.bazeBase)}" class="mt-2 w-full h-10 rounded-lg bg-white border border-slate-200 px-3 text-[12px]"></details>`
+        : `
+        <label class="block text-[12px] font-semibold text-slate-600">Claude API 키</label>
+        <input id="keyInput" type="password" autocomplete="off" placeholder="${cfg.claudeKey ? '저장된 키 있음 (…' + esc(cfg.claudeKey.slice(-4)) + ')' : 'sk-ant-로 시작하는 키'}" class="w-full h-11 rounded-xl bg-slate-100 px-3 text-[14px] outline-none focus:ring-2 focus:ring-blue-500">`}
+        <button class="w-full h-11 rounded-xl bg-slate-900 text-white text-[14px] font-bold">저장</button>
+      </form>
+      <div class="mt-2 flex gap-2">
+        <button onclick="testKey()" class="h-10 px-4 rounded-xl border border-slate-200 text-[13px] font-bold">연결 확인</button>
+        ${window.MJCAI.hasLocalKey() ? '<button onclick="clearKey()" class="h-10 px-4 rounded-xl border border-slate-200 text-[13px] font-bold text-rose-600">키 지우기</button>' : ''}
+      </div>
+    </div>
+  </section>` : ''}
+
+  <section class="px-5 mt-8 mb-6">
+    <div class="rounded-2xl bg-slate-50 p-4 text-[13px] leading-relaxed text-slate-600">
+      <p class="font-bold text-slate-900">아이폰 홈 화면에 앱으로 추가하기</p>
+      Safari에서 이 페이지를 열고 공유 버튼을 누른 뒤 '홈 화면에 추가'를 고르면 앱처럼 전체 화면으로 열려요.
+    </div>
+  </section>`;
+}
+function doLogin() { S.login(); toast(S.getProfile().name + '님, 반가워요. 이제 나에게 맞춰 추천해요', 'user'); render(); }
+function doLogout() { S.logout(); toast('로그아웃했어요'); render(); }
+function setGoal(d) { const p = S.getProfile(); p.dailyGoal = Math.max(1000, Math.min(4000, p.dailyGoal + d)); S.saveProfile(p); render(); }
+function setSpicy(v) { const p = S.getProfile(); p.spicy = v; S.saveProfile(p); render(); }
+function toggleAvoid(v) { const p = S.getProfile(); p.avoid = p.avoid.includes(v) ? p.avoid.filter(x => x !== v) : p.avoid.concat(v); S.saveProfile(p); render(); }
+function addMeal() {
+  const n = document.getElementById('mealName').value.trim();
+  const k = Number(document.getElementById('mealKcal').value);
+  if (!n || !k) { toast('먹은 것과 칼로리를 함께 적어 주세요', 'info'); return; }
+  const p = S.getProfile(); p.meals.push({ label: n, kcal: Math.round(k), time: S.hhmm(S.demoNow()) }); S.saveProfile(p); render(); toast(n + ' 기록했어요');
+}
+function removeMeal(i) { const p = S.getProfile(); p.meals.splice(i, 1); S.saveProfile(p); render(); }
+function setProvider(id) { window.MJCAI.saveConfig({ provider: id }); render(); }
+function saveAI() {
+  const c = window.MJCAI.getConfig();
+  const key = (document.getElementById('keyInput').value || '').trim();
+  if (c.provider === 'baze') {
+    const model = (document.getElementById('modelInput').value || '').trim();
+    const base = (document.getElementById('baseInput').value || '').trim();
+    window.MJCAI.saveConfig({ bazeModel: model, bazeBase: base === window.MJCAI.BAZE_BASE_DEFAULT ? '' : base });
+    if (key) { window.MJCAI.saveConfig({ bazeKey: key }); }
+  } else if (key) { window.MJCAI.saveConfig({ claudeKey: key }); }
+  render(); toast('AI 설정을 저장했어요');
+}
+function clearKey() {
+  const c = window.MJCAI.getConfig();
+  window.MJCAI.saveConfig(c.provider === 'baze' ? { bazeKey: '' } : { claudeKey: '' });
+  render(); toast('키를 지웠어요');
+}
+async function testKey() {
+  toast('AI에 연결하는 중이에요', 'loader');
+  try {
+    const r = await window.MJCAI.testConnection();
+    if (!r) { toast('키가 없어요. 키를 먼저 저장해 주세요', 'info'); return; }
+    toast('연결 성공 · ' + (r.model || r.provider) + (r.via === 'server' ? ' (서버)' : ' (이 기기 키)'), 'check');
+  } catch (e) { toast('연결 실패: ' + e.message, 'info'); }
+}
+
+/* ---------- 왜 이 시간인가요 (AI 설명) ---------- */
+function openWhy() {
+  const p = S.predict();
+  const f = p.factors;
+  const max = Math.max(...p.timeline.map(x => x.w));
+  const nowM = p.nowMinute;
+  const bars = p.timeline.map(x => {
+    const m = S.toMinutes(x.t);
+    const isNow = nowM >= m && nowM < m + 10;
+    const isRec = x.t === p.recTime;
+    return `<div class="flex-1 flex flex-col items-center gap-1"><span class="text-[10px] font-bold ${isRec ? 'text-blue-700' : isNow ? 'text-slate-900' : 'text-transparent'}">${x.w}분</span>
+      <div class="w-full h-24 flex items-end justify-center"><div class="w-full max-w-[14px] rounded-full ${isRec ? 'bg-blue-500' : isNow ? 'bg-slate-900' : 'bg-slate-200'}" style="height:${Math.max(8, x.w / max * 100)}%"></div></div>
+      <span class="text-[10px] ${isRec || isNow ? 'font-bold text-slate-900' : 'text-slate-400'}">${isNow ? '지금' : x.t.endsWith(':00') || isRec ? x.t : ''}</span></div>`;
+  }).join('');
+  document.getElementById('detailBody').innerHTML = `
+    <div class="pt-3 flex justify-center"><span class="w-10 h-1.5 rounded-full bg-slate-200"></span></div>
+    <div class="px-5 pt-3 pb-8">
+      <div class="flex items-center justify-between"><h2 class="text-[21px] font-extrabold">AI가 이렇게 예측했어요</h2><button onclick="closeDetail()" class="w-10 h-10 flex items-center justify-center" aria-label="닫기"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+      <p class="mt-1 text-[14px] text-slate-600">시간대별 예상 대기(분)예요. 파란 막대가 가장 덜 기다리는 시간이에요.</p>
+      <div class="mt-5 flex gap-1">${bars}</div>
+      <dl class="mt-6 rounded-2xl bg-slate-50 p-4 space-y-2.5 text-[14px]">
+        <div class="flex justify-between"><dt class="text-slate-600">AI 모델 예측 (지금 시간대)</dt><dd class="font-bold">${p.modelWait}분</dd></div>
+        <div class="flex justify-between"><dt class="text-slate-600">조리실 실시간 대기열</dt><dd class="font-bold">${p.queueMinutes}분 분량</dd></div>
+        <div class="flex justify-between"><dt class="text-slate-600">시험기간</dt><dd class="font-bold">${f.examPeriod ? '예' : '아니요'}</dd></div>
+        <div class="flex justify-between"><dt class="text-slate-600">교내 행사</dt><dd class="font-bold">${f.campusEvent ? '있음' : '없음'}</dd></div>
+        <div class="flex justify-between"><dt class="text-slate-600">비 소식</dt><dd class="font-bold">${f.rain ? '있음' : '없음'}</dd></div>
+      </dl>
+      <p class="mt-3 text-[12px] leading-relaxed text-slate-500">${p.source === 'model' ? '랜덤 포레스트 모델(predict.py)이 시각·요일·직전 15분 주문 수·시험기간·행사·비를 보고 예측한 값에, 지금 조리 중인 주문량을 함께 반영해요.' : '모델 예측 파일이 없어 예비 예측표를 쓰고 있어요. predict.py를 실행하면 모델 예측으로 바뀌어요.'}</p>
+    </div>`;
+  openLayer('detail');
+}
+
+/* ---------- 메뉴 상세 ---------- */
+function openDetail(id) {
+  const m = menu(id);
+  if (!m) { return; }
+  state.detailId = id; state.detailQty = 1; state.detailOpts = { rice: '보통', sauce: false }; state.detailReq = '';
+  renderDetail();
+  openLayer('detail');
+}
+function renderDetail() {
+  const m = menu(state.detailId);
+  const pred = S.predict();
+  const intake = S.todayIntake();
+  const hasRice = m.ingredients && m.ingredients.rice;
+  const extra = hasRice && state.detailOpts.rice === '곱빼기' ? 500 : 0;
+  const total = (m.price + extra) * state.detailQty;
+  const after = intake.remain - m.kcal * state.detailQty;
+  document.getElementById('detailBody').innerHTML = `
+    <div class="relative h-[300px] bg-slate-100 rounded-t-[28px] overflow-hidden">
+      ${photo(m, 'absolute inset-0 w-full h-full')}
+      <div class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-slate-900/30 to-transparent"></div>
+      <button onclick="closeDetail()" class="absolute top-3 left-3 w-11 h-11 rounded-full bg-white/90 shadow flex items-center justify-center" aria-label="닫기"><i data-lucide="chevron-down" class="w-5 h-5"></i></button>
+    </div>
+    <div class="relative -mt-6 bg-white rounded-t-3xl px-5 pt-6 pb-32">
+      <div class="flex gap-1.5">${tag(m.tag)}${tag('단백질 ' + m.protein + 'g', 'blue')}${m.spicy ? tag('매콤', 'red') : ''}</div>
+      <button onclick="closeDetail(); go('restaurant', { restaurant: '${m.restaurant}' })" class="mt-3 text-[13px] font-semibold text-blue-700 flex items-center gap-0.5">${m.restaurantName}<i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+      <h2 class="text-[26px] font-extrabold leading-tight">${m.name}</h2>
+      <p class="mt-1 text-[15px] text-slate-600">${m.desc}</p>
+      <dl class="mt-5 rounded-2xl border border-slate-200 p-4 space-y-3 text-[15px]">
+        <div class="flex justify-between"><dt class="text-slate-600 text-[14px]">지금 주문하면</dt><dd class="font-bold">약 ${S.menuWait(m, pred)}분 뒤 받아요</dd></div>
+        <div class="flex justify-between"><dt class="text-slate-600 text-[14px]">영양</dt><dd class="font-semibold">${m.kcal}kcal · 단백질 ${m.protein}g</dd></div>
+        ${S.isMember() ? `<div class="flex justify-between"><dt class="text-slate-600 text-[14px]">먹고 나면</dt><dd class="font-semibold ${after < 0 ? 'text-rose-600' : 'text-blue-700'}">${after >= 0 ? '오늘 ' + after.toLocaleString('ko-KR') + 'kcal 남아요' : (-after).toLocaleString('ko-KR') + 'kcal 넘어요'}</dd></div>` : ''}
+      </dl>
+      ${hasRice ? `<fieldset class="mt-6"><legend class="text-[17px] font-extrabold flex items-center gap-2">밥 양 ${tag('필수', 'blue')}</legend>
+        ${['보통', '곱빼기'].map(v => `<label class="flex items-center gap-3 h-12 text-[15px]"><input type="radio" name="rice" ${state.detailOpts.rice === v ? 'checked' : ''} onchange="state.detailOpts.rice='${v}'; renderDetail()" class="w-[22px] h-[22px] accent-[#3182F6]"><span class="flex-1">${v}</span><span class="text-slate-500">+${v === '곱빼기' ? '500' : '0'}원</span></label>`).join('')}</fieldset>` : ''}
+      <fieldset class="mt-4"><legend class="text-[17px] font-extrabold flex items-center gap-2">추가 선택 ${tag('선택')}</legend>
+        <label class="flex items-center gap-3 h-12 text-[15px]"><input type="checkbox" ${state.detailOpts.sauce ? 'checked' : ''} onchange="state.detailOpts.sauce=this.checked" class="w-[22px] h-[22px] accent-[#3182F6]"><span class="flex-1">소스·양념 따로</span><span class="text-slate-500">+0원</span></label></fieldset>
+      <label for="req" class="mt-4 block text-[17px] font-extrabold">요청사항</label>
+      <input id="req" maxlength="40" value="${esc(state.detailReq)}" oninput="state.detailReq=this.value" placeholder="예: 수저 하나 더 주세요" class="mt-2 w-full h-12 rounded-xl border border-slate-200 px-3 text-[15px] outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+    <div class="sticky bottom-0 bg-white border-t border-slate-100 px-5 pt-3 flex items-center gap-3" style="padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));">
+      <div class="flex items-center h-[52px] rounded-full border border-slate-200 px-1">
+        <button onclick="state.detailQty=Math.max(1,state.detailQty-1); renderDetail()" class="w-11 h-11 flex items-center justify-center" aria-label="수량 줄이기"><i data-lucide="minus" class="w-5 h-5 ${state.detailQty === 1 ? 'text-slate-300' : ''}"></i></button>
+        <span class="w-6 text-center text-[16px] font-extrabold tnum">${state.detailQty}</span>
+        <button onclick="state.detailQty=Math.min(10,state.detailQty+1); renderDetail()" class="w-11 h-11 flex items-center justify-center" aria-label="수량 늘리기"><i data-lucide="plus" class="w-5 h-5"></i></button>
+      </div>
+      <button ${m.orderable ? '' : 'disabled'} onclick="addFromDetail()" class="flex-1 h-14 rounded-2xl ${m.orderable ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-500'} text-[19px] font-extrabold">${m.orderable ? won(total) + ' 담기' : (m.restaurantOpen ? '오늘은 품절이에요' : '오늘은 식당이 쉬어요')}</button>
+    </div>`;
+  icons();
+}
+function addFromDetail() {
+  const m = menu(state.detailId);
+  addToCart(m.menu_id, state.detailQty, Object.assign({}, state.detailOpts), state.detailReq);
+  closeDetail();
+  toast(m.name + ' 담았어요');
+}
+function closeDetail() { closeLayer('detail'); }
+
+/* ---------- 장바구니 ---------- */
+function lineKey(id, opts) { return id + '|' + opts.rice + '|' + (opts.sauce ? 1 : 0); }
+function addToCart(id, qty, opts, req) {
+  const m = menu(id);
+  if (!m || !m.orderable) { toast(m && !m.restaurantOpen ? '오늘은 이 식당이 쉬어요' : '품절된 메뉴는 담을 수 없어요', 'info'); return; }
+  opts = opts || { rice: '보통', sauce: false };
+  const key = lineKey(id, opts);
+  const line = state.cart.find(l => l.key === key);
+  if (line) { line.qty += qty; if (req) { line.req = req; } } else { state.cart.push({ key, id: Number(id), qty, opts, req: req || '' }); }
+  renderCartBar();
+}
+function quickAdd(id) { const m = menu(id); addToCart(id, 1); if (m && m.orderable) { toast(m.name + ' 담았어요'); } }
+function linePrice(l) { const m = menu(l.id); const extra = m.ingredients && m.ingredients.rice && l.opts.rice === '곱빼기' ? 500 : 0; return (m.price + extra) * l.qty; }
+function cartTotal() { return state.cart.reduce((s, l) => s + linePrice(l), 0); }
+function cartCount() { return state.cart.reduce((s, l) => s + l.qty, 0); }
+function renderCartBar() {
+  const n = cartCount();
+  const bar = document.getElementById('cartBar');
+  bar.classList.toggle('show', n > 0 && state.tab !== 'ai');
+  document.getElementById('cartCount').textContent = n;
+  document.getElementById('cartTotal').textContent = won(cartTotal());
+  const p = S.predict();
+  document.getElementById('cartSub').textContent = state.pickup === 'reserve' && p.recTime ? p.recTime + ' 예약 · 대기 약 ' + p.recWait + '분' : '지금 바로 받기 · 대기 약 ' + p.currentWait + '분';
+}
+function chooseReserve() {
+  state.pickup = 'reserve';
+  renderCartBar();
+  if (cartCount()) { openCart(); } else { go('menu'); toast(S.predict().recTime + ' 예약으로 설정했어요. 메뉴를 담아 주세요', 'calendar-clock'); }
+}
+function openCart() { if (!cartCount()) { return; } renderCart(); openLayer('cart'); }
+function closeCart() { closeLayer('cart'); }
+function changeLine(key, d) {
+  const l = state.cart.find(x => x.key === key);
+  if (!l) { return; }
+  l.qty += d;
+  if (l.qty <= 0) { state.cart = state.cart.filter(x => x.key !== key); }
+  renderCartBar();
+  if (!cartCount()) { closeCart(); } else { renderCart(); }
+}
+function renderCart() {
+  const p = S.predict();
+  const o = S.openState();
+  const canReserve = !!p.recTime;
+  if (state.pickup === 'reserve' && !canReserve) { state.pickup = 'now'; }
+  const total = cartTotal();
+  document.getElementById('cartBody').innerHTML = `
+    <div class="pt-3 flex justify-center"><span class="w-10 h-1.5 rounded-full bg-slate-200"></span></div>
+    <div class="px-5 pt-2 flex items-center justify-between"><h2 class="text-[22px] font-extrabold">주문 확인</h2><button onclick="closeCart()" class="w-10 h-10 flex items-center justify-center" aria-label="닫기"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+    <div class="flex-1 overflow-y-auto px-5 pb-4">
+      <p class="mt-3 text-[14px] font-semibold text-slate-600">받는 시간</p>
+      <div class="mt-2 grid grid-cols-2 gap-2" role="radiogroup">
+        <button role="radio" aria-checked="${state.pickup === 'now'}" onclick="state.pickup='now'; renderCart(); renderCartBar()" class="text-left rounded-2xl p-4 border-2 ${state.pickup === 'now' ? 'border-blue-500 bg-blue-50' : 'border-slate-100'}">
+          <span class="block text-[15px] font-extrabold ${state.pickup === 'now' ? 'text-blue-800' : ''}">지금 바로 받기</span><span class="block text-[13px] ${state.pickup === 'now' ? 'text-blue-800' : 'text-slate-500'}">대기 약 ${p.currentWait}분</span></button>
+        <button role="radio" aria-checked="${state.pickup === 'reserve'}" ${canReserve ? '' : 'disabled'} onclick="state.pickup='reserve'; renderCart(); renderCartBar()" class="relative text-left rounded-2xl p-4 border-2 ${state.pickup === 'reserve' ? 'border-blue-500 bg-blue-50' : 'border-slate-100'} ${canReserve ? '' : 'opacity-40'}">
+          <span class="absolute top-3 right-3 h-5 px-1.5 rounded-md bg-blue-700 text-white text-[11px] font-bold flex items-center">AI 추천</span>
+          <span class="block text-[15px] font-extrabold ${state.pickup === 'reserve' ? 'text-blue-800' : ''}">${p.recTime || '-'} 예약</span><span class="block text-[13px] ${state.pickup === 'reserve' ? 'text-blue-800' : 'text-slate-500'}">대기 약 ${p.recWait || '-'}분</span></button>
+      </div>
+      <p class="mt-5 text-[14px] font-semibold text-slate-600">담은 메뉴</p>
+      <ul>${state.cart.map(l => { const m = menu(l.id); return `<li class="py-3 flex items-center gap-3 border-b border-slate-100 last:border-0">
+        ${photo(m, 'w-14 h-14 rounded-xl shrink-0')}
+        <div class="flex-1 min-w-0"><p class="text-[15px] font-bold truncate">${m.name}</p><p class="text-[12px] text-slate-500 truncate">${m.ingredients && m.ingredients.rice ? '밥 ' + l.opts.rice : ''}${l.opts.sauce ? ' · 소스 따로' : ''}${l.req ? ' · ' + esc(l.req) : ''}</p><p class="text-[14px] font-bold tnum">${won(linePrice(l))}</p></div>
+        <div class="flex items-center h-11 rounded-full border border-slate-200"><button onclick="changeLine('${l.key}',-1)" class="w-10 h-10 flex items-center justify-center" aria-label="빼기"><i data-lucide="minus" class="w-4 h-4"></i></button><span class="w-5 text-center font-bold tnum">${l.qty}</span><button onclick="changeLine('${l.key}',1)" class="w-10 h-10 flex items-center justify-center" aria-label="더하기"><i data-lucide="plus" class="w-4 h-4"></i></button></div>
+      </li>`; }).join('')}</ul>
+      <p class="mt-5 text-[14px] font-semibold text-slate-600">결제 수단</p>
+      <div class="mt-2 grid grid-cols-2 gap-2">${PAY.map(x => `<button onclick="state.pay='${x.id}'; renderCart()" class="h-[52px] rounded-2xl border-2 px-3 flex items-center gap-2 text-[15px] font-semibold ${state.pay === x.id ? 'border-blue-500 bg-blue-50 text-blue-800' : 'border-slate-100'}"><i data-lucide="${x.icon}" class="w-5 h-5"></i>${x.label}</button>`).join('')}</div>
+      <p class="mt-4 text-[12px] text-slate-500">경진대회 시연용 모의 결제예요. 실제로 돈이 나가지 않아요.</p>
+    </div>
+    <div class="px-5 pt-3 border-t border-slate-100" style="padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));">
+      ${o.open ? `<button id="payBtn" onclick="pay()" class="w-full h-14 rounded-2xl bg-blue-500 text-white text-[19px] font-extrabold flex items-center justify-center gap-2">${won(total)} 결제하기</button>`
+        : `<button disabled class="w-full h-14 rounded-2xl bg-slate-200 text-slate-500 text-[17px] font-bold">${o.label}${o.next ? ' · ' + o.next + '부터 주문할 수 있어요' : ''}</button>`}
+    </div>`;
+  icons();
+}
+async function pay() {
+  const btn = document.getElementById('payBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i data-lucide="loader-circle" class="w-5 h-5 animate-spin"></i>결제 승인 중';
+  icons();
+  await new Promise(r => setTimeout(r, 1100));
+  const p = S.predict();
+  const orders = S.getOrders();
+  const reserve = state.pickup === 'reserve' && p.recTime;
+  const items = state.cart.map(l => { const m = menu(l.id); const unit = linePrice(l) / l.qty; return { menu_id: m.menu_id, menu_name: m.name, restaurant: m.restaurant, restaurant_name: m.restaurantName, quantity: l.qty, unit_price: unit, total_price: unit * l.qty }; });
+  const reqs = state.cart.map(l => [l.opts.sauce ? '소스 따로' : '', l.opts.rice === '곱빼기' ? '밥 곱빼기' : '', l.req].filter(Boolean).join(', ')).filter(Boolean);
+  const maxCook = Math.max(...state.cart.map(l => menu(l.id).cook));
+  const order = {
+    order_number: S.issueOrderNumber(orders),
+    items, total_price: items.reduce((s, i) => s + i.total_price, 0),
+    order_status: 'WAITING', order_time: S.demoNow(), channel: '모바일', customer: 'me', member: S.isMember(),
+    payment_method: PAY.find(x => x.id === state.pay).label,
+    pickup_type: reserve ? 'RESERVED' : 'NOW', pickup_time: reserve ? p.recTime : null,
+    eta_minutes: reserve ? p.recWait : Math.max(maxCook, p.currentWait - 5 + maxCook),
+    ai_reserved: !!reserve, ai_saved_minutes: reserve ? Math.max(0, p.currentWait - p.recWait) : 0,
+    via_ai: state.cart.some(l => l.fromAI),
+    request: reqs.join(' / '), pos_ingested: true
+  };
+  orders.push(order);
+  S.saveOrders(orders);
+  state.knownStatus[order.order_number] = 'WAITING';
+  state.cart = []; state.pickup = 'now';
+  closeCart(); renderCartBar();
+  showDone(order);
+}
+function showDone(o) {
+  const reserve = o.pickup_type === 'RESERVED';
+  document.getElementById('doneCard').innerHTML = `
+    <div class="flex justify-center pop"><svg width="80" height="80" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="30" fill="#E8F3FF"></circle><circle class="ring-draw" cx="40" cy="40" r="30" fill="none" stroke="#3182F6" stroke-width="5" stroke-linecap="round" transform="rotate(-90 40 40)"></circle><path class="tick-draw" d="M28 41 L36.5 49.5 L53 32.5" fill="none" stroke="#3182F6" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+    <p class="mt-4 text-center text-[14px] font-semibold text-slate-500">주문번호</p>
+    <h2 class="text-center text-[34px] font-extrabold tnum">${S.orderNo(o.order_number)}</h2>
+    <p class="text-center text-[17px] font-bold">접수 완료</p>
+    <p class="mt-1 text-center text-[14px] text-slate-600">${reserve ? o.pickup_time + '에 맞춰 조리를 시작할게요' : '약 ' + o.eta_minutes + '분 뒤 번호로 불러 드릴게요'}</p>
+    <dl class="mt-5 rounded-2xl bg-slate-50 p-4 space-y-2 text-[14px]">
+      <div class="flex justify-between gap-3"><dt class="text-slate-600 shrink-0">메뉴</dt><dd class="text-right font-medium">${o.items.map(i => i.menu_name + ' ' + i.quantity + '개').join(', ')}</dd></div>
+      <div class="flex justify-between"><dt class="text-slate-600">결제</dt><dd class="font-medium">${o.payment_method} ${won(o.total_price)}</dd></div>
+      <div class="flex justify-between"><dt class="text-slate-600">칼로리 기록</dt><dd class="font-medium">마이에 자동 기록했어요</dd></div>
+    </dl>
+    <button onclick="closeDone(); go('orders')" class="mt-5 w-full h-14 rounded-2xl bg-blue-500 text-white text-[19px] font-extrabold">주문 현황 보기</button>`;
+  openLayer('done');
+}
+function closeDone() { closeLayer('done'); }
+
+/* ---------- 레이어 ---------- */
+function openLayer(name) {
+  if (name === 'done') { document.getElementById('doneLayer').classList.add('open'); return; }
+  document.getElementById(name + 'Backdrop').classList.add('open');
+  document.getElementById(name + 'Sheet').classList.add('open');
+  icons();
+}
+function closeLayer(name) {
+  if (name === 'done') { document.getElementById('doneLayer').classList.remove('open'); return; }
+  document.getElementById(name + 'Backdrop').classList.remove('open');
+  document.getElementById(name + 'Sheet').classList.remove('open');
+}
+
+/* ---------- 렌더 & 실시간 갱신 ---------- */
+function render() {
+  const v = document.getElementById('view');
+  v.innerHTML = { home: renderHome, restaurant: renderRestaurant, menu: renderMenu, ai: renderAI, orders: renderOrders, my: renderMy }[state.tab]();
+  renderTabbar();
+  renderCartBar();
+  icons();
+}
+function snapshot() {
+  return [S.KEYS.orders, S.KEYS.soldOut, S.KEYS.menus, S.KEYS.hours, S.KEYS.aiConfig, S.KEYS.demoOffset, S.KEYS.restaurants, S.KEYS.session].map(k => S.readRaw(k)).join('§');
+}
+function checkReady() {
+  S.myOrders().forEach(o => {
+    const prev = state.knownStatus[o.order_number];
+    if (prev && prev !== o.order_status && o.order_status === 'READY') {
+      toast(S.orderNo(o.order_number) + ' 나왔어요! 수령대로 와 주세요', 'bell-ring');
+      if (navigator.vibrate) { navigator.vibrate([120, 60, 120]); }
+    }
+    state.knownStatus[o.order_number] = o.order_status;
+  });
+}
+function refresh() {
+  const raw = snapshot();
+  if (raw === state.lastRaw) { return; }
+  state.lastRaw = raw;
+  checkReady();
+  const typing = document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
+  if (!typing && state.tab !== 'ai') { render(); } else { renderTabbar(); renderCartBar(); icons(); }
+  if (document.getElementById('cartSheet').classList.contains('open')) { renderCart(); }
+}
+
+async function checkServer() {
+  state.server = await window.MJCAI.serverStatus();
+  if (state.tab === 'my' || state.tab === 'ai') { render(); }
+}
+
+function init() {
+  checkServer();
+  S.ensureSeed();
+  S.myOrders().forEach(o => { state.knownStatus[o.order_number] = o.order_status; });
+  state.lastRaw = snapshot();
+  render();
+  setInterval(refresh, 1500);
+  window.addEventListener('storage', refresh);
+}
+document.addEventListener('DOMContentLoaded', () => { (window.dbReady || Promise.resolve()).then(init); });
+</script>
+</body>
+</html>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MJC Table 관리자</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script>
+  window.tailwind = window.tailwind || {};
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          blue:  { 50: '#E8F3FF', 100: '#C9E2FF', 200: '#90C2FF', 300: '#64A8FF', 400: '#5498F8', 500: '#3182F6', 600: '#2272EB', 700: '#1B64DA', 800: '#1957C2', 900: '#194AA6' },
+          slate: { 50: '#F9FAFB', 100: '#F2F4F6', 200: '#E5E8EB', 300: '#D1D6DB', 400: '#B0B8C1', 500: '#6B7684', 600: '#4E5968', 700: '#333D4B', 800: '#333D4B', 900: '#191F28' }
+        },
+        fontFamily: { sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', '"Apple SD Gothic Neo"', '"Malgun Gothic"', 'system-ui', 'sans-serif'] }
+      }
+    }
+  };
+</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  body { font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; letter-spacing: -0.012em; word-break: keep-all; }
+  h1, h2, h3 { letter-spacing: -0.03em; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #5498F8; outline-offset: 2px; }
+  input[type=number]::-webkit-inner-spin-button { opacity: 1; }
+  .knob { transition: left 0.2s ease; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased">
+
+<header class="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-slate-100">
+  <div class="max-w-[1440px] mx-auto px-6 h-[68px] flex items-center gap-4">
+    <span class="w-10 h-10 rounded-2xl bg-blue-500 text-white flex items-center justify-center"><i data-lucide="utensils-crossed" class="w-5 h-5"></i></span>
+    <div class="leading-tight"><p class="text-[17px] font-bold">MJC Table</p><p class="text-[12px] text-slate-500">관리자 프로그램</p></div>
+    <nav class="hidden lg:flex mx-auto p-1 rounded-2xl bg-slate-100 gap-1" aria-label="프로그램 전환">
+      <a href="../app/index.html" target="_blank" rel="noopener" class="h-10 px-4 rounded-xl text-[14px] font-semibold text-slate-500 hover:text-slate-900 flex items-center gap-1.5"><i data-lucide="smartphone" class="w-4 h-4"></i>학생 앱</a>
+      <a href="../pos/index.html" target="_blank" rel="noopener" class="h-10 px-4 rounded-xl text-[14px] font-semibold text-slate-500 hover:text-slate-900 flex items-center gap-1.5"><i data-lucide="chef-hat" class="w-4 h-4"></i>직원 POS</a>
+      <span aria-current="page" class="h-10 px-4 rounded-xl bg-white shadow-sm text-[14px] font-semibold text-blue-700 flex items-center gap-1.5"><i data-lucide="settings-2" class="w-4 h-4"></i>관리자</span>
+    </nav>
+    <div class="ml-auto lg:ml-0 text-right leading-tight">
+      <p id="clock" class="text-[20px] font-bold tnum">12:20</p>
+      <p id="openLabel" class="text-[12px] text-slate-500">점심 영업 중</p>
+    </div>
+  </div>
+</header>
+
+<div class="max-w-[1440px] mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-6">
+  <aside>
+    <nav id="sideNav" class="lg:sticky lg:top-[92px] flex lg:flex-col gap-1 overflow-x-auto" aria-label="관리 메뉴"></nav>
+  </aside>
+  <main id="view" class="min-w-0"></main>
+</div>
+
+<div id="toast" class="fixed right-6 bottom-6 z-50 transition-all duration-300 opacity-0 translate-y-3 pointer-events-none">
+  <div class="bg-slate-900/95 text-white rounded-2xl px-5 py-3.5 shadow-xl text-[14px] font-semibold flex items-center gap-2.5 max-w-sm">
+    <span class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center shrink-0"><i data-lucide="check" class="w-4 h-4"></i></span><span id="toastText"></span>
+  </div>
+</div>
+
+<script src="../shared/forecast.js"></script>
+<script src="../shared/store.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="../shared/supabase-sync.js"></script>
+<script>
+/* =====================================================================
+   MJC Table 관리자 프로그램
+   ===================================================================== */
+const S = window.Store;
+const won = S.won;
+const VIEWS = [
+  { id: 'dash', label: '대시보드', icon: 'layout-dashboard' },
+  { id: 'menu', label: '메뉴·가격', icon: 'utensils' },
+  { id: 'hours', label: '영업시간', icon: 'clock' },
+  { id: 'stock', label: '재고·발주', icon: 'package' },
+  { id: 'ai', label: 'AI 예측', icon: 'sparkles' }
+];
+const state = { view: (location.hash || '#dash').slice(1), draft: null, lastRaw: '', toastTimer: null };
+
+function icons() { if (window.lucide) { window.lucide.createIcons(); } }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function toast(t) {
+  const el = document.getElementById('toast');
+  document.getElementById('toastText').textContent = t;
+  el.classList.remove('opacity-0', 'translate-y-3');
+  clearTimeout(state.toastTimer);
+  state.toastTimer = setTimeout(() => el.classList.add('opacity-0', 'translate-y-3'), 2400);
+}
+function card(inner, cls) { return `<section class="rounded-3xl bg-white border border-slate-100 shadow-sm p-6 ${cls || ''}">${inner}</section>`; }
+function switchBtn(on, onclick, label) {
+  return `<button role="switch" aria-checked="${on}" aria-label="${label}" onclick="${onclick}" class="relative w-12 h-7 rounded-full transition-colors ${on ? 'bg-blue-500' : 'bg-slate-300'}"><span class="knob absolute top-1 w-5 h-5 rounded-full bg-white shadow" style="left:${on ? '24px' : '4px'}"></span></button>`;
+}
+function photo(m, cls) {
+  const t = m.tone || ['#F2F4F6', '#E5E8EB'];
+  return `<span class="relative block overflow-hidden ${cls}" style="background: linear-gradient(135deg, ${t[0]}, ${t[1]})"><span class="absolute inset-0 flex items-center justify-center text-[20px]">${m.emoji}</span>${m.image ? `<img src="${m.image}" alt="" class="absolute inset-0 w-full h-full object-cover" onerror="this.remove()">` : ''}</span>`;
+}
+
+function setView(id) { state.view = id; state.draft = null; history.replaceState(null, '', '#' + id); render(); window.scrollTo(0, 0); }
+function renderNav() {
+  const low = S.inventory().filter(i => i.need && !i.pending).length;
+  document.getElementById('sideNav').innerHTML = VIEWS.map(v => {
+    const on = state.view === v.id;
+    const badge = v.id === 'stock' && low ? `<span class="ml-auto min-w-[22px] h-[22px] px-1.5 rounded-full bg-rose-500 text-white text-[12px] font-bold flex items-center justify-center">${low}</span>` : '';
+    return `<button onclick="setView('${v.id}')" ${on ? 'aria-current="page"' : ''} class="shrink-0 h-11 px-4 rounded-xl text-[15px] font-semibold flex items-center gap-2.5 ${on ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-white'}"><i data-lucide="${v.icon}" class="w-[18px] h-[18px]"></i>${v.label}${badge}</button>`;
+  }).join('');
+}
+
+/* ---------- 예측 차트 ---------- */
+function chart(p, h) {
+  const max = Math.max(...p.timeline.map(x => x.w));
+  return `<div class="flex items-end gap-1.5" style="height:${h || 180}px">${p.timeline.map(x => {
+    const m = S.toMinutes(x.t);
+    const isNow = p.nowMinute >= m && p.nowMinute < m + 10;
+    const isRec = x.t === p.recTime;
+    return `<div class="flex-1 h-full flex flex-col items-center justify-end gap-1">
+      <span class="text-[11px] font-bold tnum ${isRec ? 'text-blue-700' : isNow ? 'text-slate-900' : 'text-slate-400'}">${x.w}</span>
+      <div class="w-full flex-1 flex items-end justify-center"><div class="w-full max-w-[26px] rounded-lg ${isRec ? 'bg-blue-500' : isNow ? 'bg-slate-900' : 'bg-blue-100'}" style="height:${Math.max(6, x.w / max * 100)}%"></div></div>
+      <span class="text-[11px] tnum ${isRec || isNow ? 'font-bold text-slate-900' : 'text-slate-400'}">${isNow ? '지금' : x.t}</span></div>`;
+  }).join('')}</div>`;
+}
+
+/* ---------- 대시보드 ---------- */
+function renderDash() {
+  const orders = S.getOrders();
+  const valid = orders.filter(o => o.order_status !== 'CANCELED');
+  const revenue = valid.reduce((s, o) => s + o.total_price, 0);
+  const p = S.predict();
+  const menus = S.getMenus();
+  const sales = {};
+  valid.forEach(o => o.items.forEach(i => { sales[i.menu_name] = (sales[i.menu_name] || 0) + i.quantity; }));
+  const maxQty = Math.max(1, ...menus.map(m => sales[m.name] || 0));
+  const mobile = valid.filter(o => o.channel === '모바일').length;
+  const reserved = valid.filter(o => o.pickup_type === 'RESERVED').length;
+  const low = S.inventory().filter(i => i.need);
+  const kpi = (label, value, sub, icon) => `<div class="rounded-3xl bg-white border border-slate-100 shadow-sm p-5"><p class="text-[14px] font-semibold text-slate-500 flex items-center gap-2"><i data-lucide="${icon}" class="w-4 h-4"></i>${label}</p><p class="mt-3 text-[30px] font-extrabold tnum leading-none">${value}</p><p class="mt-2 text-[13px] text-slate-500">${sub}</p></div>`;
+  return `
+  <h1 class="text-[26px] font-extrabold">오늘 운영 현황</h1>
+  <div class="mt-5 grid grid-cols-2 xl:grid-cols-4 gap-4">
+    ${kpi('오늘 매출', won(revenue), '취소 주문 제외', 'wallet')}
+    ${kpi('주문 수', valid.length + '건', '모바일 ' + mobile + ' · 키오스크 ' + (valid.length - mobile), 'receipt')}
+    ${kpi('평균 객단가', won(valid.length ? revenue / valid.length : 0), 'AI 예약 주문 ' + reserved + '건', 'trending-up')}
+    ${kpi('지금 대기', p.currentWait + '분', p.level + (p.recTime ? ' · ' + p.recTime + ' 추천' : ''), 'timer')}
+  </div>
+  ${aiImpactCard()}
+  <div class="mt-4 grid grid-cols-1 xl:grid-cols-3 gap-4">
+    ${card(`<div class="flex items-center justify-between"><h2 class="text-[18px] font-extrabold">AI 모델 시간대별 대기 예측</h2><button onclick="setView('ai')" class="text-[14px] font-semibold text-blue-700">예측 설정</button></div>
+      <p class="mt-1 text-[13px] text-slate-500">학생 앱에는 파란 막대 시간을 예약 추천으로 보여줘요.</p><div class="mt-5">${chart(p)}</div>`, 'xl:col-span-2')}
+    ${card(`<h2 class="text-[18px] font-extrabold">재고 알림</h2>
+      ${low.length ? `<ul class="mt-3 space-y-2">${low.map(i => `<li class="flex items-center justify-between rounded-2xl bg-rose-50 px-4 py-3"><span class="text-[15px] font-bold text-rose-700">${i.name}</span><span class="text-[13px] text-rose-700 tnum">${i.stock}${i.unit} 남음${i.pending ? ' · 발주 중' : ''}</span></li>`).join('')}</ul>
+        <button onclick="setView('stock')" class="mt-4 w-full h-11 rounded-xl bg-slate-900 text-white text-[14px] font-bold">재고·발주로 이동</button>`
+        : '<p class="mt-3 text-[14px] text-slate-500">안전재고 아래로 떨어진 재료가 없어요.</p>'}`)}
+  </div>
+  ${card(`<div class="flex items-baseline justify-between"><h2 class="text-[18px] font-extrabold">메뉴별 판매 상위 10</h2><span class="text-[13px] text-slate-500">전체 ${menus.length}개 메뉴 · 식당 ${S.getRestaurants().length}곳</span></div><ul class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">${menus.slice().sort((a, b) => (sales[b.name] || 0) - (sales[a.name] || 0)).slice(0, 10).map(m => `<li class="flex items-center gap-3">${photo(m, 'w-11 h-11 rounded-xl shrink-0')}<div class="flex-1"><div class="flex justify-between text-[14px]"><span class="font-semibold">${m.name} <span class="font-normal text-slate-500">${m.restaurantName}</span></span><span class="tnum text-slate-600">${sales[m.name] || 0}개 · ${won((sales[m.name] || 0) * m.price)}</span></div><div class="mt-1.5 h-2 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-blue-500" style="width:${(sales[m.name] || 0) / maxQty * 100}%"></div></div></div></li>`).join('')}</ul>`, 'mt-4')}`;
+}
+
+/* ---------- AI 효과 (대시보드) ---------- */
+function aiImpactCard() {
+  const a = S.aiImpact();
+  const fc = S.forecastInfo();
+  const tile = (label, value, sub) => `<div class="rounded-2xl bg-white/10 p-4"><p class="text-[13px] text-blue-100">${label}</p><p class="mt-2 text-[28px] font-extrabold tnum leading-none">${value}</p><p class="mt-2 text-[12px] text-blue-100">${sub}</p></div>`;
+  return `<section class="mt-4 rounded-3xl bg-blue-900 text-white p-6">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center"><i data-lucide="sparkles" class="w-5 h-5"></i></span>
+      <h2 class="text-[18px] font-extrabold">AI 효과</h2>
+      <span class="text-[13px] text-blue-100">예측이 학생의 선택을 바꾼 결과</span>
+      <button onclick="setView('ai')" class="ml-auto h-9 px-3 rounded-xl bg-white/15 text-[13px] font-semibold">모델 자세히</button>
+    </div>
+    <div class="mt-5 grid grid-cols-2 xl:grid-cols-4 gap-3">
+      ${tile('AI 추천 시각으로 예약한 주문', a.reserved + '건', '전체 주문의 ' + Math.round(a.share * 100) + '%')}
+      ${tile('예약으로 줄인 대기 합계', a.saved + '분', '1건당 평균 ' + (a.reserved ? (a.saved / a.reserved).toFixed(1) : 0) + '분')}
+      ${tile('AI 추천 질문', a.stats.questions + '회', 'LLM ' + a.stats.llm + '회 · 규칙 기반 ' + a.stats.rule + '회')}
+      ${tile('예측 모델 정확도', fc ? Math.round(fc.metrics.accuracy * 100) + '%' : '-', fc ? '단순 규칙 ' + Math.round(fc.metrics.baseline_accuracy * 100) + '% 대비' : 'predict.py를 실행하면 표시돼요')}
+    </div>
+  </section>`;
+}
+
+/* ---------- 메뉴·가격 ---------- */
+function renderMenu() {
+  if (!state.draft) { state.draft = S.getMenus().map(m => Object.assign({}, m)); }
+  const d = state.draft;
+  const cats = ['밥', '면', '돈까스', '분식'];
+  const inp = (i, key, type, w) => `<input type="${type}" value="${esc(d[i][key])}" oninput="state.draft[${i}].${key}=${type === 'number' ? 'Number(this.value)' : 'this.value'}" class="${w} h-10 rounded-lg border border-slate-200 px-2.5 text-[14px] ${type === 'number' ? 'tnum text-right' : ''}">`;
+  return `
+  <div class="flex flex-wrap items-end gap-3"><div><h1 class="text-[26px] font-extrabold">메뉴·가격 관리</h1><p class="mt-1 text-[14px] text-slate-500">저장하면 학생 앱과 직원 POS에 바로 반영돼요.</p></div>
+    <div class="ml-auto flex gap-2"><button onclick="state.draft=null; render()" class="h-11 px-4 rounded-xl border border-slate-200 bg-white text-[14px] font-bold">되돌리기</button><button onclick="saveMenu()" class="h-11 px-5 rounded-xl bg-blue-700 text-white text-[14px] font-bold">변경 저장</button></div></div>
+  ${card(`<div class="overflow-x-auto"><table class="w-full text-[14px] min-w-[900px]">
+    <thead class="text-left text-[12px] text-slate-500"><tr><th class="pb-3 font-semibold">메뉴</th><th class="pb-3 font-semibold">분류</th><th class="pb-3 font-semibold text-right">가격(원)</th><th class="pb-3 font-semibold text-right">조리(분)</th><th class="pb-3 font-semibold text-right">kcal</th><th class="pb-3 font-semibold text-right">단백질(g)</th><th class="pb-3 font-semibold text-center">판매</th><th class="pb-3 font-semibold text-center">앱 노출</th></tr></thead>
+    <tbody>${S.getRestaurants().map(r => `<tr class="bg-slate-50"><td colspan="8" class="px-3 py-2.5 rounded-xl"><div class="flex items-center gap-3"><span class="text-[15px] font-extrabold">${r.name}</span><span class="text-[13px] text-slate-500">${r.category} · 메뉴 ${d.filter(m => m.restaurant === r.id).length}개</span><span class="ml-auto flex items-center gap-2 text-[13px] font-semibold ${r.open ? 'text-blue-700' : 'text-rose-600'}">${r.open ? '오늘 영업' : '오늘 휴무'}${switchBtn(r.open, `toggleRestaurant('${r.id}')`, r.name + ' 영업')}</span></div></td></tr>` +
+      d.map((m, i) => ({ m, i })).filter(x => x.m.restaurant === r.id).map(({ m, i }) => `<tr class="border-t border-slate-100">
+      <td class="py-3 pr-3"><div class="flex items-center gap-3">${photo(m, 'w-12 h-12 rounded-xl shrink-0')}${inp(i, 'name', 'text', 'w-44')}</div></td>
+      <td class="py-3 pr-3"><select onchange="state.draft[${i}].category=this.value" class="h-10 rounded-lg border border-slate-200 px-2 text-[14px] bg-white">${cats.map(c => `<option ${m.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></td>
+      <td class="py-3 pr-3 text-right">${inp(i, 'price', 'number', 'w-24')}</td>
+      <td class="py-3 pr-3 text-right">${inp(i, 'cook', 'number', 'w-16')}</td>
+      <td class="py-3 pr-3 text-right">${inp(i, 'kcal', 'number', 'w-20')}</td>
+      <td class="py-3 pr-3 text-right">${inp(i, 'protein', 'number', 'w-16')}</td>
+      <td class="py-3 text-center"><div class="inline-flex flex-col items-center gap-1">${switchBtn(!m.sold_out, `state.draft[${i}].sold_out=!state.draft[${i}].sold_out; render()`, m.name + ' 판매')}<span class="text-[11px] font-bold ${m.sold_out ? 'text-rose-600' : 'text-blue-700'}">${m.sold_out ? '품절' : '판매중'}</span></div></td>
+      <td class="py-3 text-center"><div class="inline-flex flex-col items-center gap-1">${switchBtn(m.visible !== false, `state.draft[${i}].visible=(state.draft[${i}].visible===false); render()`, m.name + ' 앱 노출')}<span class="text-[11px] font-bold ${m.visible === false ? 'text-slate-500' : 'text-blue-700'}">${m.visible === false ? '숨김' : '보임'}</span></div></td>
+    </tr>`).join('')).join('')}</tbody></table></div>
+    <p class="mt-4 text-[13px] text-slate-500">식당 영업 스위치는 바로 저장돼요. 새 메뉴 등록과 사진 업로드는 2단계에서 Supabase Storage로 연결할 예정이에요.</p>`, 'mt-5')}`;
+}
+function toggleRestaurant(id) {
+  const r = S.restaurantById(id);
+  S.setRestaurantOpen(id, !r.open);
+  if (state.draft) { const open = !r.open; state.draft.forEach(m => { if (m.restaurant === id) { m.restaurantOpen = open; } }); }
+  render();
+  toast(r.name + (r.open ? ' 오늘 휴무로 바꿨어요. 학생 앱에서 주문을 받지 않아요' : ' 영업을 다시 시작했어요'));
+}
+function saveMenu() {
+  const d = state.draft;
+  if (d.some(m => !m.name.trim() || !(m.price > 0) || !(m.cook > 0))) { toast('메뉴 이름, 가격, 조리 시간을 확인해 주세요'); return; }
+  const sold = {};
+  d.forEach(m => { if (m.sold_out) { sold[m.menu_id] = true; } });
+  S.saveMenus(d);
+  S.setSoldOut(sold);
+  state.draft = null;
+  render();
+  toast('저장했어요. 학생 앱과 POS에 반영됐어요');
+}
+
+/* ---------- 영업시간 ---------- */
+function renderHours() {
+  const h = S.getHours();
+  const o = S.openState();
+  const time = (path, v) => `<input type="time" value="${v}" onchange="setHour('${path}', this.value)" class="h-11 rounded-xl border border-slate-200 px-3 text-[15px] tnum">`;
+  return `
+  <h1 class="text-[26px] font-extrabold">영업시간</h1>
+  <p class="mt-1 text-[14px] text-slate-500">바꾸면 학생 앱의 영업 상태와 주문 가능 여부가 바로 바뀌어요. 지금: <b class="text-slate-900">${o.label}${o.until ? ' (' + o.until + '까지)' : ''}</b></p>
+  <div class="mt-5 grid grid-cols-1 xl:grid-cols-2 gap-4">
+    ${card(`<h2 class="text-[18px] font-extrabold">운영 시간</h2>
+      <div class="mt-4 space-y-4">
+        <div class="flex items-center gap-3"><span class="w-16 text-[15px] font-semibold">점심</span>${time('lunch.open', h.lunch.open)}<span class="text-slate-400">~</span>${time('lunch.close', h.lunch.close)}</div>
+        <div class="flex items-center gap-3"><span class="w-16 text-[15px] font-semibold">저녁</span>${time('dinner.open', h.dinner.open)}<span class="text-slate-400">~</span>${time('dinner.close', h.dinner.close)}</div>
+      </div>`)}
+    ${card(`<h2 class="text-[18px] font-extrabold">오늘 운영</h2>
+      <div class="mt-4 flex items-center justify-between"><div><p class="text-[15px] font-semibold">오늘 휴무</p><p class="text-[13px] text-slate-500">켜면 학생 앱에서 주문을 받지 않아요</p></div>${switchBtn(h.closedToday, 'toggleClosed()', '오늘 휴무')}</div>
+      <div class="mt-5 flex items-center justify-between"><div><p class="text-[15px] font-semibold">예약 주문 마감</p><p class="text-[13px] text-slate-500">예약 시각 몇 분 전까지 받을지</p></div>
+        <div class="flex items-center gap-2"><input type="number" min="0" max="60" value="${h.reserveCutoff}" onchange="setHour('reserveCutoff', Number(this.value))" class="w-20 h-11 rounded-xl border border-slate-200 px-3 text-right tnum"><span class="text-[14px]">분 전</span></div></div>`)}
+  </div>`;
+}
+function setHour(path, v) {
+  const h = S.getHours();
+  const p = path.split('.');
+  if (p.length === 2) { h[p[0]][p[1]] = v; } else { h[p[0]] = v; }
+  S.saveHours(h); render(); toast('영업시간을 저장했어요');
+}
+function toggleClosed() { const h = S.getHours(); h.closedToday = !h.closedToday; S.saveHours(h); render(); toast(h.closedToday ? '오늘 휴무로 바꿨어요' : '오늘 정상 영업으로 바꿨어요'); }
+
+/* ---------- 재고·발주 ---------- */
+function renderStock() {
+  const inv = S.inventory();
+  const purchases = S.getPurchases().slice().sort((a, b) => b.at - a.at);
+  const need = inv.filter(i => i.need && i.suggest > 0);
+  return `
+  <div class="flex flex-wrap items-end gap-3"><div><h1 class="text-[26px] font-extrabold">재고·발주</h1><p class="mt-1 text-[14px] text-slate-500">주문이 들어올 때마다 메뉴 레시피대로 재고가 줄어요. 안전재고 아래면 발주를 추천해요.</p></div>
+    ${need.length ? `<button onclick="orderAll()" class="ml-auto h-11 px-5 rounded-xl bg-blue-700 text-white text-[14px] font-bold flex items-center gap-1.5"><i data-lucide="truck" class="w-4 h-4"></i>부족한 ${need.length}개 한 번에 발주</button>` : ''}</div>
+  ${card(`<div class="overflow-x-auto"><table class="w-full text-[14px] min-w-[860px]">
+    <thead class="text-left text-[12px] text-slate-500"><tr><th class="pb-3 font-semibold">재료</th><th class="pb-3 font-semibold">쓰는 메뉴</th><th class="pb-3 font-semibold text-right">오늘 사용</th><th class="pb-3 font-semibold text-right">현재 재고</th><th class="pb-3 font-semibold text-right">안전재고</th><th class="pb-3 font-semibold">상태</th><th class="pb-3 font-semibold text-right">발주량</th><th class="pb-3"></th></tr></thead>
+    <tbody>${inv.map(i => `<tr class="border-t border-slate-100 ${i.need ? 'bg-rose-50/40' : ''}">
+      <td class="py-3 font-semibold">${i.name}</td>
+      <td class="py-3 text-slate-600">${i.usedBy.join(', ')}</td>
+      <td class="py-3 text-right tnum">${i.used}${i.unit}</td>
+      <td class="py-3 text-right tnum font-bold ${i.need ? 'text-rose-600' : ''}">${i.stock}${i.unit}</td>
+      <td class="py-3 text-right tnum text-slate-600">${i.safety}${i.unit}</td>
+      <td class="py-3">${i.pending ? `<span class="h-6 px-2 rounded-md bg-amber-50 text-amber-800 text-[12px] font-bold inline-flex items-center">발주 중 ${i.pending}${i.unit}</span>` : i.need ? '<span class="h-6 px-2 rounded-md bg-rose-100 text-rose-700 text-[12px] font-bold inline-flex items-center">부족</span>' : '<span class="h-6 px-2 rounded-md bg-slate-100 text-slate-600 text-[12px] font-bold inline-flex items-center">여유</span>'}</td>
+      <td class="py-3 text-right"><input id="q-${i.id}" type="number" min="1" value="${i.suggest || ''}" placeholder="0" class="w-20 h-9 rounded-lg border border-slate-200 px-2 text-right tnum"></td>
+      <td class="py-3 pl-3 text-right"><button onclick="orderOne('${i.id}')" class="h-9 px-3 rounded-lg border border-slate-200 text-[13px] font-bold">발주 요청</button></td>
+    </tr>`).join('')}</tbody></table></div>
+    <p class="mt-4 text-[13px] text-slate-500">추천 발주량 = 안전재고의 2배 − 현재 재고 − 이미 발주한 양</p>`, 'mt-5')}
+  ${card(`<h2 class="text-[18px] font-extrabold">발주 내역</h2>${purchases.length ? `<table class="mt-3 w-full text-[14px]"><thead class="text-left text-[12px] text-slate-500"><tr><th class="pb-2 font-semibold">요청 시각</th><th class="pb-2 font-semibold">재료</th><th class="pb-2 font-semibold text-right">수량</th><th class="pb-2 font-semibold">상태</th><th></th></tr></thead><tbody>${purchases.map(p => { const it = inv.find(i => i.id === p.ingredient); return `<tr class="border-t border-slate-100"><td class="py-3 tnum">${S.hhmm(p.at)}</td><td class="py-3 font-semibold">${it ? it.name : p.ingredient}</td><td class="py-3 text-right tnum">${p.qty}${it ? it.unit : ''}</td><td class="py-3">${p.status === 'RECEIVED' ? '<span class="text-blue-700 font-bold">입고 완료</span>' : '<span class="text-amber-700 font-bold">발주 요청됨</span>'}</td><td class="py-3 text-right">${p.status === 'RECEIVED' ? '' : `<button onclick="receive('${p.id}')" class="h-9 px-3 rounded-lg bg-slate-900 text-white text-[13px] font-bold">입고 처리</button>`}</td></tr>`; }).join('')}</tbody></table>` : '<p class="mt-3 text-[14px] text-slate-500">아직 발주한 재료가 없어요.</p>'}`, 'mt-4')}`;
+}
+function addPurchase(id, qty) { const list = S.getPurchases(); list.push({ id: 'p' + Date.now() + Math.floor(Math.random() * 1000), ingredient: id, qty, status: 'REQUESTED', at: S.demoNow() }); S.savePurchases(list); }
+function orderOne(id) { const q = Number(document.getElementById('q-' + id).value); if (!(q > 0)) { toast('발주 수량을 적어 주세요'); return; } addPurchase(id, q); render(); toast('발주를 요청했어요'); }
+function orderAll() { S.inventory().filter(i => i.need && i.suggest > 0).forEach(i => addPurchase(i.id, i.suggest)); render(); toast('부족한 재료를 한 번에 발주했어요'); }
+function receive(pid) { const list = S.getPurchases(); const p = list.find(x => x.id === pid); if (p) { p.status = 'RECEIVED'; p.receivedAt = S.demoNow(); } S.savePurchases(list); render(); toast('입고 처리했어요. 재고에 더했어요'); }
+
+/* ---------- AI 예측 설정 ---------- */
+function renderAI() {
+  const c = S.getAIConfig();
+  const p = S.predict();
+  const fc = S.forecastInfo();
+  const row = (key, label, desc) => `<div class="flex items-center justify-between py-4 border-t border-slate-100 first:border-0"><div><p class="text-[15px] font-semibold">${label} <span class="text-[12px] font-semibold text-blue-700">모델 입력</span></p><p class="text-[13px] text-slate-500">${desc}</p></div>${switchBtn(!!c[key], `toggleFactor('${key}')`, label)}</div>`;
+  const pair = (label, model, base, unit, better) => {
+    const max = Math.max(model, base) || 1;
+    return `<div><p class="text-[14px] font-semibold">${label} <span class="text-[12px] font-normal text-slate-500">(${better})</span></p>
+      <div class="mt-2 space-y-1.5">
+        <div class="flex items-center gap-2"><span class="w-20 text-[12px] text-slate-600 shrink-0">AI 모델</span><div class="flex-1 h-3 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-blue-500" style="width:${model / max * 100}%"></div></div><span class="w-14 text-right text-[13px] font-bold tnum">${model}${unit}</span></div>
+        <div class="flex items-center gap-2"><span class="w-20 text-[12px] text-slate-600 shrink-0">단순 규칙</span><div class="flex-1 h-3 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-slate-400" style="width:${base / max * 100}%"></div></div><span class="w-14 text-right text-[13px] font-bold tnum">${base}${unit}</span></div>
+      </div></div>`;
+  };
+  const imp = fc ? fc.importance : [];
+  const impMax = imp.length ? imp[0].score : 1;
+  return `
+  <h1 class="text-[26px] font-extrabold">AI 예측</h1>
+  <p class="mt-1 text-[14px] text-slate-500">학사일정과 날씨를 바꾸면 모델 예측과 학생 앱의 예약 추천 시각이 바로 바뀌어요.</p>
+  <div class="mt-5 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-4">
+    ${card(`<div class="flex flex-wrap items-center justify-between gap-2"><h2 class="text-[18px] font-extrabold">오늘 시간대별 예측</h2><span class="text-[14px] text-slate-600">지금 ${p.currentWait}분 · ${p.level}${p.recTime ? ' · 추천 ' + p.recTime + ' (' + p.recWait + '분)' : ''}</span></div><div class="mt-5">${chart(p, 220)}</div>
+      <dl class="mt-6 grid grid-cols-3 gap-3 text-center">
+        <div class="rounded-2xl bg-slate-50 p-3"><dt class="text-[12px] text-slate-500">모델 예측 (지금 시간대)</dt><dd class="mt-1 text-[20px] font-extrabold tnum">${p.modelWait}분</dd></div>
+        <div class="rounded-2xl bg-slate-50 p-3"><dt class="text-[12px] text-slate-500">실시간 주방 대기열</dt><dd class="mt-1 text-[20px] font-extrabold tnum">${p.queueMinutes}분</dd></div>
+        <div class="rounded-2xl bg-slate-50 p-3"><dt class="text-[12px] text-slate-500">예측 출처</dt><dd class="mt-1 text-[16px] font-extrabold">${p.source === 'model' ? 'AI 모델' : '예비 예측표'}</dd></div>
+      </dl>`)}
+    <div class="space-y-4">
+      ${card(`<h2 class="text-[18px] font-extrabold">학사일정·날씨</h2><div class="mt-2">
+        ${row('examPeriod', '시험기간', '수업이 줄어 점심 방문이 흩어져요')}
+        ${row('campusEvent', '교내 행사', '축제·설명회로 외부 방문객이 늘어요')}
+        ${row('rain', '비 소식', '교외 식사가 줄어 학식으로 몰려요')}
+      </div>
+      <div class="flex items-center justify-between pt-4 border-t border-slate-100"><div><p class="text-[15px] font-semibold">조리 인원</p><p class="text-[13px] text-slate-500">대기열을 나눠 처리하는 사람 수</p></div>
+        <div class="flex items-center gap-2"><button onclick="setStations(-1)" class="w-9 h-9 rounded-full border border-slate-200" aria-label="줄이기">−</button><span class="w-6 text-center font-bold tnum">${c.stations}</span><button onclick="setStations(1)" class="w-9 h-9 rounded-full border border-slate-200" aria-label="늘리기">+</button></div></div>`)}
+    </div>
+  </div>
+  ${fc ? card(`<div class="flex flex-wrap items-center gap-2"><h2 class="text-[18px] font-extrabold">예측 모델</h2><span class="h-7 px-2.5 rounded-full bg-blue-50 text-blue-800 text-[12px] font-bold flex items-center">랜덤 포레스트</span><span class="ml-auto text-[13px] text-slate-500">${fc.generated_at} 학습 · 학습 데이터 ${fc.samples}건${fc.real_orders ? ' (실제 주문 ' + fc.real_orders + '건 포함)' : ''}</span></div>
+    <div class="mt-5 grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div class="space-y-5">
+        <p class="text-[15px] font-extrabold">단순 규칙과 비교</p>
+        ${pair('혼잡도 정확도', Math.round(fc.metrics.accuracy * 100), Math.round(fc.metrics.baseline_accuracy * 100), '%', '높을수록 좋아요')}
+        ${pair('대기시간 평균 오차', fc.metrics.wait_mae.toFixed(2), fc.metrics.baseline_mae.toFixed(2), '분', '낮을수록 좋아요')}
+        <p class="text-[12px] leading-relaxed text-slate-500">단순 규칙: "다음 15분도 직전 15분과 같다"고 가정한 예측이에요.</p>
+      </div>
+      <div>
+        <p class="text-[15px] font-extrabold">X 인자 (모델이 보는 정보) 중요도</p>
+        <ul class="mt-3 space-y-2">${imp.map(i => `<li class="flex items-center gap-2"><span class="w-32 text-[13px] text-slate-700 shrink-0">${i.label}</span><div class="flex-1 h-3 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-blue-500" style="width:${i.score / impMax * 100}%"></div></div><span class="w-12 text-right text-[13px] font-bold tnum">${Math.round(i.score * 100)}%</span></li>`).join('')}</ul>
+      </div>
+      <div>
+        <p class="text-[15px] font-extrabold">Y (모델이 맞히는 값)</p>
+        <ul class="mt-3 space-y-2 text-[14px] text-slate-700">${fc.targets.map(t => `<li class="flex items-start gap-2"><i data-lucide="target" class="w-4 h-4 mt-0.5 text-blue-500 shrink-0"></i>${t}</li>`).join('')}</ul>
+        <p class="mt-4 rounded-2xl bg-slate-50 p-3 text-[12px] leading-relaxed text-slate-600">지금은 합성 데이터로 학습해 예측 과정을 검증한 단계예요. 직원 POS의 '학습 데이터 내보내기'로 실제 주문 기록을 모아 <code class="text-[11px]">python predict.py --data 파일.csv</code>로 다시 학습해요.</p>
+      </div>
+    </div>`, 'mt-4') : card(`<p class="text-[14px] text-slate-600">모델 예측 파일(shared/forecast.js)이 없어 예비 예측표를 쓰고 있어요. <code>python predict.py</code>를 실행하면 모델 예측으로 바뀌어요.</p>`, 'mt-4')}`;
+}
+function toggleFactor(k) { const c = S.getAIConfig(); c[k] = !c[k]; S.saveAIConfig(c); render(); toast('예측을 다시 계산했어요'); }
+function setStations(d) { const c = S.getAIConfig(); c.stations = Math.max(1, Math.min(5, (c.stations || 2) + d)); S.saveAIConfig(c); render(); }
+
+/* ---------- 렌더 ---------- */
+function render() {
+  if (!VIEWS.some(v => v.id === state.view)) { state.view = 'dash'; }
+  document.getElementById('view').innerHTML = { dash: renderDash, menu: renderMenu, hours: renderHours, stock: renderStock, ai: renderAI }[state.view]();
+  renderNav();
+  tick();
+  icons();
+}
+function tick() {
+  document.getElementById('clock').textContent = S.hhmm(S.demoNow());
+  const o = S.openState();
+  document.getElementById('openLabel').textContent = o.label + (o.until ? ' · ' + o.until + '까지' : '');
+}
+function snapshot() { return [S.KEYS.orders, S.KEYS.soldOut, S.KEYS.menus, S.KEYS.hours, S.KEYS.aiConfig, S.KEYS.purchases, S.KEYS.demoOffset, S.KEYS.restaurants, S.KEYS.aiStats].map(k => S.readRaw(k)).join('§'); }
+function refresh() {
+  tick();
+  const raw = snapshot();
+  if (raw === state.lastRaw) { return; }
+  state.lastRaw = raw;
+  const editing = state.view === 'menu' && state.draft;
+  const typing = document.activeElement && ['INPUT', 'SELECT'].includes(document.activeElement.tagName);
+  if (!editing && !typing) { render(); } else { renderNav(); icons(); }
+}
+function init() {
+  S.ensureSeed();
+  state.lastRaw = snapshot();
+  render();
+  setInterval(refresh, 1500);
+  window.addEventListener('storage', refresh);
+}
+document.addEventListener('DOMContentLoaded', () => { (window.dbReady || Promise.resolve()).then(init); });
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# API 키가 들어간 파일은 절대 올리지 않기
+.env
+.env.*
+!.env.example
+.netlify/
+node_modules/
+.env

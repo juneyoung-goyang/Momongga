@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MJC Table · 학생식당 스마트오더 플랫폼</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root { --ink: #191F28; --sub: #4E5968; --line: #E5E8EB; --bg: #F9FAFB; --blue: #3182F6; --blue-deep: #194AA6; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; color: var(--ink); background: var(--bg); letter-spacing: -0.012em; word-break: keep-all; }
+  main { max-width: 1040px; margin: 0 auto; padding: 56px 24px 72px; }
+  h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.2; letter-spacing: -0.04em; margin: 0; }
+  .lead { margin: 14px 0 0; font-size: 17px; line-height: 1.6; color: var(--sub); max-width: 640px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 36px; }
+  a.card { display: flex; flex-direction: column; gap: 10px; padding: 24px; border-radius: 24px; background: #fff; border: 1px solid var(--line); color: inherit; text-decoration: none; transition: border-color 0.2s, transform 0.2s; }
+  a.card:hover { border-color: var(--blue); transform: translateY(-2px); }
+  a.card:focus-visible { outline: 3px solid #5498F8; outline-offset: 3px; }
+  .who { font-size: 13px; font-weight: 700; color: var(--blue-deep); }
+  .card h2 { margin: 0; font-size: 22px; letter-spacing: -0.03em; }
+  .card p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--sub); }
+  .open { margin-top: auto; padding-top: 8px; font-size: 15px; font-weight: 700; color: var(--blue); }
+  section.demo { margin-top: 40px; padding: 28px; border-radius: 24px; background: #fff; border: 1px solid var(--line); }
+  section.demo h2 { margin: 0; font-size: 20px; }
+  ol { margin: 14px 0 0; padding-left: 20px; line-height: 1.9; font-size: 15px; color: var(--sub); }
+  ol b { color: var(--ink); }
+  .note { margin-top: 16px; font-size: 13px; color: var(--sub); }
+</style>
+</head>
+<body>
+<main>
+  <h1>MJC Table<br>줄 서지 않는 학생식당</h1>
+  <p class="lead">학생 앱, 직원 POS, 관리자 프로그램이 하나의 데이터로 실시간 연결돼요. AI가 조리실 대기를 예측해 덜 붐비는 시간에 예약하도록 돕고, 말로 물어보면 남은 칼로리와 최근 식사까지 보고 메뉴를 골라 줘요.</p>
+
+  <div class="grid">
+    <a class="card" href="app/index.html" target="_blank" rel="noopener">
+      <span class="who">학생 · 아이폰</span>
+      <h2>학생 앱</h2>
+      <p>대기 예측과 예약 주문, AI 메뉴 추천(자연어), 칼로리 기록, 주문 현황 알림</p>
+      <span class="open">앱 열기</span>
+    </a>
+    <a class="card" href="pos/index.html" target="_blank" rel="noopener">
+      <span class="who">조리실 직원 · PC</span>
+      <h2>직원 POS</h2>
+      <p>실시간 주문 접수, 조리 진행과 예상 시간, 픽업 호출, 픽업 보드</p>
+      <span class="open">POS 열기</span>
+    </a>
+    <a class="card" href="admin/index.html" target="_blank" rel="noopener">
+      <span class="who">식당 관리자 · PC</span>
+      <h2>관리자</h2>
+      <p>메뉴·가격·품절, 영업시간, 재고와 발주, AI 예측 설정, 매출 대시보드</p>
+      <span class="open">관리자 열기</span>
+    </a>
+    <a class="card" href="docs/architecture.html" target="_blank" rel="noopener">
+      <span class="who">발표 · 심사용</span>
+      <h2>AI 구조</h2>
+      <p>프로그램 3개와 AI 2개가 어떻게 연결되는지, 예측 모델의 X·Y와 자연어 추천 흐름</p>
+      <span class="open">구조 보기</span>
+    </a>
+  </div>
+
+  <section class="demo" aria-labelledby="demoTitle">
+    <h2 id="demoTitle">시연 순서 (영상 3~5분)</h2>
+    <ol>
+      <li><b>직원 POS</b>를 열고 아래 '초기화'를 눌러 시연 데이터(16건, 99,000원)로 맞춰요.</li>
+      <li><b>학생 앱</b> 홈에서 AI 대기 예측을 보여 주고 '예약 주문'으로 덜 붐비는 시간에 주문해요. 관리자 대시보드의 'AI 효과'에 바로 반영돼요.</li>
+      <li>AI 추천 탭에서 "고기 말고 국물 있는 거, 10분 안에"처럼 말로 물어보고 'AI가 만든 SQL'을 펼쳐 보여요.</li>
+      <li>결제하면 <b>직원 POS</b>에 주문이 바로 뜨고, 조리 시작과 픽업 알림을 누르면 앱에 "나왔어요" 알림이 와요.</li>
+      <li><b>관리자</b>에서 가격이나 품절을 바꾸고, 시험기간·비 소식을 켜서 학생 앱의 예측이 바로 바뀌는 걸 보여요.</li>
+    </ol>
+    <p class="note">같은 브라우저의 탭끼리는 바로 연결돼요. 휴대폰과 노트북처럼 다른 기기를 연결하려면 shared/supabase-sync.js에 Supabase 주소와 키를 넣어 주세요.</p>
+  </section>
+</main>
+</body>
+</html>

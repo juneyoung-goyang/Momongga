@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MJC Table · 시스템 아키텍처</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root { --ink: #191F28; --sub: #4E5968; --mute: #6B7684; --line: #E5E8EB; --bg: #F9FAFB; --blue: #3182F6; --blue-text: #1B64DA; --blue-deep: #194AA6; --blue-soft: #E8F3FF; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; color: var(--ink); background: var(--bg); letter-spacing: -0.012em; word-break: keep-all; line-height: 1.6; }
+  main { max-width: 1080px; margin: 0 auto; padding: 48px 24px 80px; }
+  .eyebrow { font-size: 14px; font-weight: 700; color: var(--blue-text); }
+  h1 { margin: 6px 0 0; font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.035em; line-height: 1.25; }
+  .lead { margin: 12px 0 0; font-size: 16px; color: var(--sub); max-width: 760px; }
+  .card { margin-top: 28px; background: #fff; border: 1px solid var(--line); border-radius: 24px; padding: 28px; }
+  .card h2 { margin: 0; font-size: 21px; letter-spacing: -0.03em; }
+  .card > p { margin: 6px 0 0; color: var(--sub); font-size: 15px; }
+  .diagram { margin-top: 20px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 860px; height: auto; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 18px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; color: var(--mute); font-weight: 600; border-top: 0; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; background: var(--blue-soft); color: #1957C2; }
+  ol.steps { margin: 16px 0 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 10px; }
+  ol.steps li { counter-increment: s; display: flex; gap: 12px; align-items: flex-start; font-size: 15px; }
+  ol.steps li::before { content: counter(s); flex: 0 0 28px; height: 28px; border-radius: 9999px; background: var(--blue); color: #fff; font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  ul.plain { margin: 12px 0 0; padding-left: 18px; font-size: 15px; color: var(--sub); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .chips span { padding: 6px 12px; border-radius: 9999px; background: #F2F4F6; font-size: 13px; font-weight: 600; color: #333D4B; }
+  .note { margin-top: 14px; font-size: 13px; color: var(--mute); }
+  a { color: var(--blue-text); }
+  code { font-size: 13px; background: #F2F4F6; padding: 1px 6px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">MJC Table · 학생식당 스마트오더 플랫폼</p>
+  <h1>프로그램 3개, 데이터 1개, AI 2개</h1>
+  <p class="lead">학생 앱, 직원 POS, 관리자 프로그램이 하나의 데이터로 실시간 연결돼요. AI는 두 곳에서 일해요. 시간대별 대기를 예측해 덜 붐비는 시간으로 예약하도록 돕고, 학생의 말을 SQL로 바꿔 오늘 메뉴에서 알맞은 메뉴를 찾아요.</p>
+
+  <section class="card" aria-labelledby="flowTitle">
+    <h2 id="flowTitle">전체 흐름</h2>
+    <p>위에서 아래로 데이터가 흐르고, 직원 POS의 주문 기록이 다시 모델 학습으로 돌아가요.</p>
+    <div class="diagram">
+      <svg viewBox="0 0 1000 640" role="img" aria-labelledby="svgTitle svgDesc">
+        <title id="svgTitle">MJC Table 시스템 아키텍처</title>
+        <desc id="svgDesc">학생 앱, 직원 POS, 관리자가 공통 데이터 계층과 연결되고, 공통 데이터는 AI 대기 예측과 AI 자연어 추천으로 이어지며, POS 주문 기록이 모델 재학습으로 순환하는 구조</desc>
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#B0B8C1"></path></marker>
+          <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#3182F6"></path></marker>
+        </defs>
+        <style>
+          .t { font-family: Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; fill: #191F28; }
+          .h { font-size: 19px; font-weight: 800; }
+          .s { font-size: 13.5px; fill: #4E5968; }
+          .w { fill: #FFFFFF; }
+          .ws { fill: #C9E2FF; font-size: 13.5px; }
+          .lab { font-size: 12px; font-weight: 700; fill: #6B7684; }
+        </style>
+
+        <text class="t lab" x="40" y="20">사용자</text>
+        <rect x="40" y="30" width="280" height="96" rx="18" fill="#FFFFFF" stroke="#E5E8EB" stroke-width="1.5"></rect>
+        <text class="t h" x="64" y="70">학생 앱</text>
+        <text class="t s" x="64" y="96">아이폰 홈 화면 웹앱 · 주문·예약·AI 추천</text>
+        <rect x="360" y="30" width="280" height="96" rx="18" fill="#FFFFFF" stroke="#E5E8EB" stroke-width="1.5"></rect>
+        <text class="t h" x="384" y="70">직원 POS</text>
+        <text class="t s" x="384" y="96">PC · 접수 → 조리 → 픽업 알림</text>
+        <rect x="680" y="30" width="280" height="96" rx="18" fill="#FFFFFF" stroke="#E5E8EB" stroke-width="1.5"></rect>
+        <text class="t h" x="704" y="70">관리자</text>
+        <text class="t s" x="704" y="96">PC · 메뉴·영업·재고·AI 설정</text>
+
+        <line x1="180" y1="128" x2="180" y2="186" stroke="#B0B8C1" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"></line>
+        <line x1="500" y1="128" x2="500" y2="186" stroke="#B0B8C1" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"></line>
+        <line x1="820" y1="128" x2="820" y2="186" stroke="#B0B8C1" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"></line>
+
+        <text class="t lab" x="40" y="182">데이터</text>
+        <rect x="40" y="190" width="920" height="88" rx="18" fill="#E8F3FF" stroke="#C9E2FF" stroke-width="1.5"></rect>
+        <text class="t h" x="64" y="228">공통 데이터 계층 (shared/store.js)</text>
+        <text class="t s" x="64" y="256">주문 · 메뉴 45개 · 식당 5곳 · 재고 · 영업시간   |   브라우저 저장소 ↔ Supabase 실시간 동기화</text>
+
+        <line x1="260" y1="280" x2="260" y2="336" stroke="#3182F6" stroke-width="2" marker-end="url(#arrowBlue)"></line>
+        <line x1="740" y1="280" x2="740" y2="336" stroke="#3182F6" stroke-width="2" marker-end="url(#arrowBlue)"></line>
+
+        <text class="t lab" x="40" y="334">AI</text>
+        <rect x="40" y="342" width="440" height="168" rx="18" fill="#194AA6"></rect>
+        <text class="t h w" x="64" y="380">AI ① 대기 예측</text>
+        <text class="t ws" x="64" y="410">predict.py · 랜덤 포레스트 (분류 + 회귀)</text>
+        <text class="t ws" x="64" y="434">→ shared/forecast.js 시간대별 예측</text>
+        <text class="t ws" x="64" y="458">+ 식당별 주방 대기열 (실시간)</text>
+        <text class="t ws" x="64" y="482">→ 덜 붐비는 시각 예약 추천</text>
+
+        <rect x="520" y="342" width="440" height="168" rx="18" fill="#194AA6"></rect>
+        <text class="t h w" x="544" y="380">AI ② 자연어 메뉴 추천</text>
+        <text class="t ws" x="544" y="410">학생 질문 → Netlify 서버 함수 (키 보관)</text>
+        <text class="t ws" x="544" y="434">→ 학교 BAZE LLM이 SQL과 추천 이유 생성</text>
+        <text class="t ws" x="544" y="458">→ SQL 검사 (SELECT만) → SQLite 실행</text>
+        <text class="t ws" x="544" y="482">→ 추천 메뉴 + 예약 제안</text>
+
+        <rect x="40" y="560" width="920" height="60" rx="18" fill="#FFFFFF" stroke="#3182F6" stroke-width="1.5" stroke-dasharray="6 6"></rect>
+        <text class="t" x="64" y="596" style="font-size: 15px; font-weight: 700;">데이터 순환</text>
+        <text class="t s" x="160" y="596">직원 POS '학습 데이터 내보내기' → CSV → python predict.py --data → 모델 재학습 → 예측이 더 정확해짐</text>
+        <path d="M260 558 L260 512" stroke="#3182F6" stroke-width="2" stroke-dasharray="5 5" fill="none" marker-end="url(#arrowBlue)"></path>
+      </svg>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="mlTitle">
+    <h2 id="mlTitle">AI ① 대기 예측 모델</h2>
+    <p>멘토링에서 정한 대로, 무엇을 보고(X) 무엇을 맞히는지(Y)를 분명히 했어요.</p>
+    <div class="grid2">
+      <table>
+        <thead><tr><th>X 인자 (모델이 보는 정보)</th><th>이유</th></tr></thead>
+        <tbody>
+          <tr><td>시각 (분 단위)</td><td>점심 피크 11:30~13:30</td></tr>
+          <tr><td>요일</td><td>요일마다 수업 시간표가 달라요</td></tr>
+          <tr><td>직전 15분 주문 수</td><td>지금 몰리는 정도</td></tr>
+          <tr><td>시험기간 여부</td><td>수업이 줄어 방문이 흩어져요</td></tr>
+          <tr><td>교내 행사 여부</td><td>외부 방문객이 늘어요</td></tr>
+          <tr><td>비 여부</td><td>교외 식사가 줄어요</td></tr>
+          <tr><td>피크타임 여부</td><td>시각을 구간으로 묶은 값</td></tr>
+        </tbody>
+      </table>
+      <div>
+        <table>
+          <thead><tr><th>Y (맞히는 값)</th><th>모델</th></tr></thead>
+          <tbody>
+            <tr><td>15분 뒤 혼잡도 (원활·보통·혼잡)</td><td><span class="tag">분류</span> RandomForestClassifier</td></tr>
+            <tr><td>15분 뒤 예상 대기시간 (분)</td><td><span class="tag">회귀</span> RandomForestRegressor</td></tr>
+          </tbody>
+        </table>
+        <ul class="plain">
+          <li>앱이 보여주는 메뉴별 예상 수령 시간 = 모델 예측(공통 혼잡) + 그 식당 주방의 대기열 + 메뉴 조리 시간</li>
+          <li>단순 규칙("다음 15분도 직전 15분과 같다")과 정확도·오차를 비교해 관리자 화면에 보여줘요</li>
+        </ul>
+        <p class="note">현재는 합성 데이터 500건으로 예측 과정을 검증한 단계예요. 실제 주문 기록이 쌓이면 POS에서 내보내 다시 학습해요.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="nlTitle">
+    <h2 id="nlTitle">AI ② 자연어 메뉴 추천 (NL2SQL)</h2>
+    <p>예: "고기 말고 국물 있는 거, 10분 안에"</p>
+    <ol class="steps">
+      <li>학생 앱이 질문, 오늘 메뉴 표 구조, 지금 대기 예측, (로그인했다면) 남은 칼로리와 최근 주문을 묶어요.</li>
+      <li>Netlify 서버 함수가 학교 BAZE 게이트웨이의 LLM에 보내요. API 키는 서버에만 있어요.</li>
+      <li>LLM이 SQL, 추천 이유, 추천 메뉴, 다음 행동(예약 제안 등)을 JSON으로 돌려줘요.</li>
+      <li>앱이 SQL을 검사해요. SELECT만, menus 표만 허용해요.</li>
+      <li>브라우저 안 SQLite(sql.js)에서 실행해 실제로 있는 메뉴만 보여주고, 'AI가 만든 SQL'도 펼쳐 볼 수 있어요.</li>
+      <li>10분 안에 받기 어려우면 추천 시각 예약으로 바로 담을 수 있어요.</li>
+    </ol>
+    <div class="grid2">
+      <div>
+        <h3 style="margin:0;font-size:16px;">책임 있게 쓰기 위한 장치</h3>
+        <ul class="plain">
+          <li>API 키는 서버 환경 변수에만, 화면 코드에는 없음</li>
+          <li>LLM이 만든 SQL은 실행 전에 검사</li>
+          <li>비회원은 개인 기록 없이 추천</li>
+          <li>사람(IP)당 1분 15회 요청 제한, 다른 사이트 호출 차단</li>
+          <li>LLM 연결이 끊겨도 규칙 기반으로 같은 흐름 유지</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin:0;font-size:16px;">쓴 기술</h3>
+        <div class="chips">
+          <span>HTML · CSS · JavaScript</span><span>Tailwind CSS</span><span>Lucide</span><span>Python</span><span>scikit-learn</span><span>pandas</span><span>sql.js (SQLite)</span><span>Netlify Functions</span><span>학교 BAZE LLM 게이트웨이</span><span>Supabase (선택)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="note">메뉴·가격·식당 구성과 주문 수치는 시연용 가상 데이터예요. <a href="../index.html">시작 페이지로</a></p>
+</main>
+</body>
+</html>
