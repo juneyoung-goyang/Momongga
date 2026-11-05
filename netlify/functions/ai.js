@@ -86,6 +86,25 @@ exports.handler = async function (event) {
 
   /* 상태 확인: 앱이 "AI 서버 연결됨"을 표시할 때 사용 (키는 알려주지 않음) */
   if (event.httpMethod === 'GET') {
+    /* ?models=1 : (Gemini 전용) 이 키로 쓸 수 있는 모델 ID 목록. 모델 이름을 몰라 404가 날 때 확인용. 키는 알려주지 않음 */
+    const qs = event.queryStringParameters || {};
+    if (qs.models && p.name === 'gemini') {
+      const h = event.headers || {};
+      const ip0 = h['x-nf-client-connection-ip'] || (h['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+      if (limited(ip0)) { return reply(429, { error: '잠시 후 다시 시도해 주세요' }); }
+      try {
+        const url = process.env.GEMINI_LIST_URL || 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=200';
+        const r = await fetchWithTimeout(url, { headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY } });
+        const raw = await r.text().catch(() => '');
+        let d = {};
+        try { d = JSON.parse(raw); } catch (e) { /* JSON 아님 */ }
+        if (!r.ok) { return reply(502, { error: 'Gemini 모델 목록 오류 (' + r.status + '): ' + upstreamMessage(d, raw, process.env.GEMINI_API_KEY) }); }
+        const ids = (d.models || [])
+          .filter(m => (m.supportedGenerationMethods || []).includes('generateContent') && /gemini/i.test(m.name))
+          .map(m => String(m.name).replace(/^models\//, ''));
+        return reply(200, { provider: 'gemini', current_model: p.model, usable_models: ids });
+      } catch (e) { return reply(502, { error: isTimeout(e) ? '모델 목록 응답이 너무 오래 걸려요' : '모델 목록을 가져오지 못했어요' }); }
+    }
     return reply(200, { ready: p.ready, provider: p.name, model: p.ready ? p.model : '' });
   }
   if (event.httpMethod !== 'POST') { return { statusCode: 405, body: 'Method Not Allowed' }; }
