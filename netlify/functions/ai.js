@@ -12,6 +12,8 @@
        GEMINI_BASE_URL  (선택) 기본값 https://generativelanguage.googleapis.com/v1beta/openai
    [C] Claude API
        ANTHROPIC_API_KEY, (선택) CLAUDE_MODEL
+   (선택) AI_TIMEOUT_MS  외부 AI 응답을 기다리는 최대 시간(기본 8500). Netlify 함수 기본 제한(약 10초)보다 짧아야 원인 문구가 보임
+   (선택) GEMINI_REASONING_EFFORT  none | minimal | low | medium | high — 생각 시간을 줄여 응답을 빠르게 (모델이 지원할 때만)
    (선택) AI_PROVIDER  baze | gemini | claude  — 키가 여러 개일 때 쓸 곳을 강제로 지정. 없으면 baze → gemini → claude 순서
    (선택) RATE_LIMIT_PER_MIN  한 사람(IP)이 1분에 보낼 수 있는 요청 수, 기본 15
 
@@ -35,6 +37,16 @@ function provider() {
   if (name === 'claude') { return { name, model: process.env.CLAUDE_MODEL || 'claude-sonnet-5-5', ready: true }; }
   return { name: 'none', model: '', ready: false };
 }
+
+/* 제한 시간 안에 응답이 없으면 끊음 (Netlify가 먼저 504로 끊어 버리면 원인을 알 수 없으므로) */
+async function fetchWithTimeout(url, options) {
+  const ms = Number(process.env.AI_TIMEOUT_MS || 8500);
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), ms);
+  try { return await fetch(url, Object.assign({}, options, { signal: ctl.signal })); }
+  finally { clearTimeout(timer); }
+}
+function isTimeout(e) { return e && (e.name === 'AbortError' || e.name === 'TimeoutError'); }
 
 /* 외부 AI 오류 응답에서 사람이 읽을 메시지만 뽑음 (OpenAI식 error.message, message, detail 등). 키 문자열은 *** 로 가림 */
 function upstreamMessage(data, raw, key) {
@@ -100,15 +112,19 @@ exports.handler = async function (event) {
     const base = (isGemini
       ? (process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai')
       : (process.env.BAZE_BASE_URL || 'https://factchat-cloud.mindlogic.ai/v1/gateway')).replace(/\/+$/, '');
+    const body = { model: p.model, messages: [{ role: 'system', content: system }].concat(messages), max_tokens: isGemini ? 2000 : 700, temperature: 0.2 };
+    if (isGemini && process.env.GEMINI_REASONING_EFFORT) { body.reasoning_effort = process.env.GEMINI_REASONING_EFFORT; }
     let res;
     try {
-      res = await fetch(base + '/chat/completions', {
+      res = await fetchWithTimeout(base + '/chat/completions', {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: 'Bearer ' + process.env[keyName] },
-        /* Gemini는 생각에 쓰는 분량이 출력 한도에 포함될 수 있어 넉넉히 줌 */
-        body: JSON.stringify({ model: p.model, messages: [{ role: 'system', content: system }].concat(messages), max_tokens: isGemini ? 2000 : 700, temperature: 0.2 })
+        body: JSON.stringify(body)
       });
-    } catch (e) { return reply(502, { error: label + '에 연결하지 못했어요' }); }
+    } catch (e) {
+      if (isTimeout(e)) { return reply(504, { error: label + ' 응답이 너무 오래 걸려요 (' + Math.round(Number(process.env.AI_TIMEOUT_MS || 8500) / 1000) + '초 초과). 더 빠른 모델로 바꿔 보세요' }); }
+      return reply(502, { error: label + '에 연결하지 못했어요' });
+    }
     /* 본문을 먼저 글자로 읽어, JSON이 아니어도 원인을 볼 수 있게 함 */
     const raw = await res.text().catch(() => '');
     let data = {};
