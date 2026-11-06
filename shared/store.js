@@ -25,7 +25,7 @@
     aiStats: 'smartorder.aistats',
     session: 'smartorder.session'
   };
-  var DATA_VERSION = '12';
+  var DATA_VERSION = '13';
   var FIRST_ORDER_NUMBER = 102;
   var DEMO_START = '12:20';
 
@@ -40,7 +40,7 @@
     { id: "noodle", name: "면 공방", category: "면", desc: "매일 뽑는 면과 진한 육수", emoji: "🍜", cover: 3, tone: ["#FFF7E6", "#F6E3C2"], open: true },
     { id: "katsu", name: "바삭 돈까스", category: "돈까스", desc: "주문하면 바로 튀기는 두툼한 돈까스", emoji: "🍖", cover: 5, tone: ["#FFEEDD", "#FFD3AE"], open: true },
     { id: "snack", name: "분식 스테이션", category: "분식", desc: "빠르고 가볍게, 학교 앞 분식 그대로", emoji: "🍢", cover: 6, tone: ["#FFE9E6", "#FFC9C2"], open: true },
-    { id: "soup", name: "든든 국밥", category: "국물", desc: "뚝배기에 바로 끓여 내는 국밥과 찌개", emoji: "🍲", cover: null, tone: ["#FBEFE8", "#F0D5C6"], open: true }
+    { id: "soup", name: "든든 국밥", category: "국물", desc: "뚝배기에 바로 끓여 내는 국밥과 찌개", emoji: "🍲", cover: 37, tone: ["#FBEFE8", "#F0D5C6"], open: true }
   ];
 
   /* ---------- 기본 메뉴 45개 (관리자 프로그램에서 수정 가능, 사진이 없으면 일러스트) ---------- */
