@@ -134,19 +134,19 @@
 </nav>
 
 <!-- 메뉴 상세 -->
-<div id="detailBackdrop" class="fade fixed inset-0 z-40 bg-slate-900/40" onclick="closeDetail()"></div>
+<div id="detailBackdrop" class="fade fixed inset-0 z-40 bg-ink/40" onclick="closeDetail()"></div>
 <section id="detailSheet" class="sheet fixed inset-x-0 bottom-0 z-50" role="dialog" aria-modal="true">
-  <div id="detailBody" class="max-w-[430px] mx-auto bg-white rounded-t-[28px] max-h-[94vh] overflow-y-auto"></div>
+  <div id="detailBody" class="max-w-[430px] mx-auto bg-white rounded-t-sheet max-h-[94vh] overflow-y-auto overscroll-contain"></div>
 </section>
 
 <!-- 장바구니·결제 -->
-<div id="cartBackdrop" class="fade fixed inset-0 z-40 bg-slate-900/40" onclick="closeCart()"></div>
+<div id="cartBackdrop" class="fade fixed inset-0 z-40 bg-ink/40" onclick="closeCart()"></div>
 <section id="cartSheet" class="sheet fixed inset-x-0 bottom-0 z-50" role="dialog" aria-modal="true" aria-label="주문 확인">
-  <div id="cartBody" class="max-w-[430px] mx-auto bg-white rounded-t-[28px] max-h-[92vh] flex flex-col"></div>
+  <div id="cartBody" class="max-w-[430px] mx-auto bg-white rounded-t-sheet max-h-[92vh] flex flex-col"></div>
 </section>
 
 <!-- 주문 완료 -->
-<div id="doneLayer" class="fade fixed inset-0 z-[60] bg-slate-900/50 flex items-center justify-center p-5">
+<div id="doneLayer" class="fade fixed inset-0 z-[60] bg-ink/50 flex items-center justify-center p-5">
   <div id="doneCard" class="w-full max-w-[380px] bg-white rounded-[28px] p-6"></div>
 </div>
 
@@ -914,24 +914,24 @@ function openWhy() {
     const m = S.toMinutes(x.t);
     const isNow = nowM >= m && nowM < m + 10;
     const isRec = x.t === p.recTime;
-    return `<div class="flex-1 flex flex-col items-center gap-1"><span class="text-[10px] font-bold ${isRec ? 'text-blue-700' : isNow ? 'text-slate-900' : 'text-transparent'}">${x.w}분</span>
-      <div class="w-full h-24 flex items-end justify-center"><div class="w-full max-w-[14px] rounded-full ${isRec ? 'bg-blue-500' : isNow ? 'bg-slate-900' : 'bg-slate-200'}" style="height:${Math.max(8, x.w / max * 100)}%"></div></div>
-      <span class="text-[10px] ${isRec || isNow ? 'font-bold text-slate-900' : 'text-slate-400'}">${isNow ? '지금' : x.t.endsWith(':00') || isRec ? x.t : ''}</span></div>`;
+    return `<div class="flex-1 min-w-0 flex flex-col items-center gap-1"><span class="text-[10px] font-bold tnum ${isRec ? 'text-accent' : isNow ? 'text-ink' : 'text-transparent'}">${x.w}분</span>
+      <div class="w-full h-24 flex items-end justify-center"><div class="w-full max-w-[10px] rounded-full ${isRec ? 'bg-accent' : isNow ? 'bg-accent/45' : 'bg-[#E5E8EB]'}" style="height:${Math.max(8, x.w / max * 100)}%"></div></div>
+      <span class="text-[10px] whitespace-nowrap ${isRec || isNow ? 'font-bold text-ink' : 'text-weak'}">${isNow ? '지금' : x.t.endsWith(':00') || isRec ? x.t : ''}</span></div>`;
   }).join('');
   document.getElementById('detailBody').innerHTML = `
-    <div class="pt-3 flex justify-center"><span class="w-10 h-1.5 rounded-full bg-slate-200"></span></div>
+    <div class="pt-2.5 flex justify-center"><span class="w-10 h-1 rounded-full bg-[#E5E8EB]"></span></div>
     <div class="px-5 pt-3 pb-8">
-      <div class="flex items-center justify-between"><h2 class="text-[21px] font-extrabold">AI가 이렇게 예측했어요</h2><button onclick="closeDetail()" class="w-10 h-10 flex items-center justify-center" aria-label="닫기"><i data-lucide="x" class="w-5 h-5"></i></button></div>
-      <p class="mt-1 text-[14px] text-slate-600">시간대별 예상 대기(분)예요. 파란 막대가 가장 덜 기다리는 시간이에요.</p>
-      <div class="mt-5 flex gap-1">${bars}</div>
-      <dl class="mt-6 rounded-2xl bg-slate-50 p-4 space-y-2.5 text-[14px]">
-        <div class="flex justify-between"><dt class="text-slate-600">AI 모델 예측 (지금 시간대)</dt><dd class="font-bold">${p.modelWait}분</dd></div>
-        <div class="flex justify-between"><dt class="text-slate-600">조리실 실시간 대기열</dt><dd class="font-bold">${p.queueMinutes}분 분량</dd></div>
-        <div class="flex justify-between"><dt class="text-slate-600">시험기간</dt><dd class="font-bold">${f.examPeriod ? '예' : '아니요'}</dd></div>
-        <div class="flex justify-between"><dt class="text-slate-600">교내 행사</dt><dd class="font-bold">${f.campusEvent ? '있음' : '없음'}</dd></div>
-        <div class="flex justify-between"><dt class="text-slate-600">비 소식</dt><dd class="font-bold">${f.rain ? '있음' : '없음'}</dd></div>
+      <div class="flex items-center justify-between"><h2 class="text-[20px] font-extrabold">AI가 이렇게 예측했어요</h2><button onclick="closeDetail()" class="w-10 h-10 -mr-2 rounded-full flex items-center justify-center text-sub" aria-label="닫기"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+      <p class="mt-1 text-[14px] font-medium text-sub">시간대별 예상 대기(분)예요. 파란 막대가 가장 덜 기다리는 시간이에요.</p>
+      <div class="mt-5 flex gap-[3px]">${bars}</div>
+      <dl class="mt-6 rounded-card bg-subtle p-4 space-y-2.5 text-[14px]">
+        <div class="flex justify-between"><dt class="text-sub">AI 모델 예측 (지금 시간대)</dt><dd class="font-bold tnum">${p.modelWait}분</dd></div>
+        <div class="flex justify-between"><dt class="text-sub">조리실 실시간 대기열</dt><dd class="font-bold tnum">${p.queueMinutes}분 분량</dd></div>
+        <div class="flex justify-between"><dt class="text-sub">시험기간</dt><dd class="font-bold">${f.examPeriod ? '예' : '아니요'}</dd></div>
+        <div class="flex justify-between"><dt class="text-sub">교내 행사</dt><dd class="font-bold">${f.campusEvent ? '있음' : '없음'}</dd></div>
+        <div class="flex justify-between"><dt class="text-sub">비 소식</dt><dd class="font-bold">${f.rain ? '있음' : '없음'}</dd></div>
       </dl>
-      <p class="mt-3 text-[12px] leading-relaxed text-slate-500">${p.source === 'model' ? '랜덤 포레스트 모델(predict.py)이 시각·요일·직전 15분 주문 수·시험기간·행사·비를 보고 예측한 값에, 지금 조리 중인 주문량을 함께 반영해요.' : '모델 예측 파일이 없어 예비 예측표를 쓰고 있어요. predict.py를 실행하면 모델 예측으로 바뀌어요.'}</p>
+      <p class="mt-3 text-[12px] font-medium leading-relaxed text-sub">${p.source === 'model' ? '랜덤 포레스트 모델(predict.py)이 시각·요일·직전 15분 주문 수·시험기간·행사·비를 보고 예측한 값에, 지금 조리 중인 주문량을 함께 반영해요.' : '모델 예측 파일이 없어 예비 예측표를 쓰고 있어요. predict.py를 실행하면 모델 예측으로 바뀌어요.'}</p>
     </div>`;
   openLayer('detail');
 }
@@ -952,34 +952,47 @@ function renderDetail() {
   const extra = hasRice && state.detailOpts.rice === '곱빼기' ? 500 : 0;
   const total = (m.price + extra) * state.detailQty;
   const after = intake.remain - m.kcal * state.detailQty;
+  const w = S.menuWait(m, pred);
+  const wTone = { ok: 'text-ok', warn: 'text-warn', bad: 'text-bad' }[waitTone(w)];
   document.getElementById('detailBody').innerHTML = `
-    <div class="relative h-[300px] bg-slate-100 rounded-t-[28px] overflow-hidden">
-      ${photo(m, 'absolute inset-0 w-full h-full')}
-      <div class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-slate-900/30 to-transparent"></div>
-      <button onclick="closeDetail()" class="absolute top-3 left-3 w-11 h-11 rounded-full bg-white/90 shadow flex items-center justify-center" aria-label="닫기"><i data-lucide="chevron-down" class="w-5 h-5"></i></button>
-    </div>
-    <div class="relative -mt-6 bg-white rounded-t-3xl px-5 pt-6 pb-32">
-      <div class="flex gap-1.5">${tag(m.tag)}${tag('단백질 ' + m.protein + 'g', 'blue')}${m.spicy ? tag('매콤', 'red') : ''}</div>
-      <button onclick="closeDetail(); go('restaurant', { restaurant: '${m.restaurant}' })" class="mt-3 text-[13px] font-semibold text-blue-700 flex items-center gap-0.5">${m.restaurantName}<i data-lucide="chevron-right" class="w-4 h-4"></i></button>
-      <h2 class="text-[26px] font-extrabold leading-tight">${m.name}</h2>
-      <p class="mt-1 text-[15px] text-slate-600">${m.desc}</p>
-      <dl class="mt-5 rounded-2xl border border-slate-200 p-4 space-y-3 text-[15px]">
-        <div class="flex justify-between"><dt class="text-slate-600 text-[14px]">지금 주문하면</dt><dd class="font-bold">약 ${S.menuWait(m, pred)}분 뒤 받아요</dd></div>
-        <div class="flex justify-between"><dt class="text-slate-600 text-[14px]">영양</dt><dd class="font-semibold">${m.kcal}kcal · 단백질 ${m.protein}g</dd></div>
-        ${S.isMember() ? `<div class="flex justify-between"><dt class="text-slate-600 text-[14px]">먹고 나면</dt><dd class="font-semibold ${after < 0 ? 'text-rose-600' : 'text-blue-700'}">${after >= 0 ? '오늘 ' + after.toLocaleString('ko-KR') + 'kcal 남아요' : (-after).toLocaleString('ko-KR') + 'kcal 넘어요'}</dd></div>` : ''}
-      </dl>
-      ${hasRice ? `<fieldset class="mt-6"><legend class="text-[17px] font-extrabold flex items-center gap-2">밥 양 ${tag('필수', 'blue')}</legend>
-        ${['보통', '곱빼기'].map(v => `<label class="flex items-center gap-3 h-12 text-[15px]"><input type="radio" name="rice" ${state.detailOpts.rice === v ? 'checked' : ''} onchange="state.detailOpts.rice='${v}'; renderDetail()" class="w-[22px] h-[22px] accent-[#3182F6]"><span class="flex-1">${v}</span><span class="text-slate-500">+${v === '곱빼기' ? '500' : '0'}원</span></label>`).join('')}</fieldset>` : ''}
-      <fieldset class="mt-4"><legend class="text-[17px] font-extrabold flex items-center gap-2">추가 선택 ${tag('선택')}</legend>
-        <label class="flex items-center gap-3 h-12 text-[15px]"><input type="checkbox" ${state.detailOpts.sauce ? 'checked' : ''} onchange="state.detailOpts.sauce=this.checked" class="w-[22px] h-[22px] accent-[#3182F6]"><span class="flex-1">소스·양념 따로</span><span class="text-slate-500">+0원</span></label></fieldset>
-    </div>
-    <div class="sticky bottom-0 bg-white border-t border-slate-100 px-5 pt-3 flex items-center gap-3" style="padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));">
-      <div class="flex items-center h-[52px] rounded-full border border-slate-200 px-1">
-        <button onclick="state.detailQty=Math.max(1,state.detailQty-1); renderDetail()" class="w-11 h-11 flex items-center justify-center" aria-label="수량 줄이기"><i data-lucide="minus" class="w-5 h-5 ${state.detailQty === 1 ? 'text-slate-300' : ''}"></i></button>
-        <span class="w-6 text-center text-[16px] font-extrabold tnum">${state.detailQty}</span>
-        <button onclick="state.detailQty=Math.min(10,state.detailQty+1); renderDetail()" class="w-11 h-11 flex items-center justify-center" aria-label="수량 늘리기"><i data-lucide="plus" class="w-5 h-5"></i></button>
+    <div class="sticky top-0 z-10 bg-white rounded-t-sheet">
+      <div class="pt-2.5 flex justify-center"><span class="w-10 h-1 rounded-full bg-[#E5E8EB]"></span></div>
+      <div class="px-5 pt-3 pb-4 flex items-center gap-3 border-b border-line">
+        ${photo(m, 'w-14 h-14 rounded-row shrink-0')}
+        <div class="flex-1 min-w-0">
+          <h2 class="text-[16px] font-bold leading-snug truncate">${m.name}</h2>
+          <p class="text-[12px] font-medium text-sub truncate tnum">${hasRice ? '밥 ' + state.detailOpts.rice + ' · ' : ''}${state.detailQty}개 · ${won(total)}</p>
+        </div>
+        <button onclick="closeDetail()" class="w-10 h-10 -mr-2 rounded-full flex items-center justify-center text-sub shrink-0" aria-label="닫기"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
-      <button ${m.orderable ? '' : 'disabled'} onclick="addFromDetail()" class="flex-1 h-14 rounded-2xl ${m.orderable ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-500'} text-[19px] font-extrabold">${m.orderable ? won(total) + ' 담기' : (m.restaurantOpen ? '오늘은 품절이에요' : '오늘은 식당이 쉬어요')}</button>
+    </div>
+    <div class="px-5 pt-4 pb-8">
+      ${photo(m, 'w-full aspect-[16/10] rounded-card')}
+      <div class="mt-4 flex flex-wrap gap-1.5">${tag(m.tag)}${tag('단백질 ' + m.protein + 'g', 'blue')}${m.spicy ? tag('매콤', 'red') : ''}</div>
+      <button onclick="closeDetail(); go('restaurant', { restaurant: '${m.restaurant}' })" class="mt-3 text-[13px] font-semibold text-sub flex items-center gap-0.5">${m.restaurantName}<i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+      <p class="mt-1 text-[14px] font-medium leading-relaxed text-sub">${m.desc}</p>
+      <dl class="mt-4 grid ${S.isMember() ? 'grid-cols-3' : 'grid-cols-2'} gap-2">
+        <div class="rounded-row bg-subtle px-3 py-2.5"><dt class="text-[12px] font-medium text-sub">지금 주문하면</dt><dd class="mt-0.5 text-[15px] font-extrabold tnum ${wTone}">약 ${w}분 뒤 받아요</dd></div>
+        <div class="rounded-row bg-subtle px-3 py-2.5"><dt class="text-[12px] font-medium text-sub">영양</dt><dd class="mt-0.5 text-[15px] font-extrabold tnum">${m.kcal}kcal · 단백질 ${m.protein}g</dd></div>
+        ${S.isMember() ? `<div class="rounded-row bg-subtle px-3 py-2.5"><dt class="text-[12px] font-medium text-sub">먹고 나면</dt><dd class="mt-0.5 text-[15px] font-extrabold tnum ${after < 0 ? 'text-bad' : 'text-accent'}">${after >= 0 ? '오늘 ' + after.toLocaleString('ko-KR') + 'kcal 남아요' : (-after).toLocaleString('ko-KR') + 'kcal 넘어요'}</dd></div>` : ''}
+      </dl>
+      ${hasRice ? `<fieldset class="mt-6"><legend class="text-[18px] font-extrabold flex items-center gap-2">밥 양 ${tag('필수', 'blue')}</legend>
+        <div class="mt-3 flex gap-2">${['보통', '곱빼기'].map(v => `<label class="opt cursor-pointer"><input type="radio" name="rice" ${state.detailOpts.rice === v ? 'checked' : ''} onchange="state.detailOpts.rice='${v}'; renderDetail()" class="sr-only"><span class="opt-face w-[88px] h-[96px] rounded-row border border-line bg-white flex flex-col items-center justify-center gap-1.5 transition-colors duration-200">
+          <svg width="30" height="22" viewBox="0 0 30 22" fill="none" aria-hidden="true"><path d="M2 9h26a13 13 0 0 1-26 0Z" fill="currentColor" opacity=".9"/>${v === '곱빼기' ? '<path d="M6 9c0-5 4-8 9-8s9 3 9 8" stroke="currentColor" stroke-width="2" fill="none"/>' : '<path d="M8 9c1-3.5 4-5 7-5s6 1.5 7 5" stroke="currentColor" stroke-width="2" fill="none"/>'}</svg>
+          <span class="text-[15px] font-bold">${v}</span><span class="opt-sub text-[12px] font-medium text-sub tnum">+${v === '곱빼기' ? '500' : '0'}원</span></span></label>`).join('')}</div></fieldset>` : ''}
+      <fieldset class="mt-6"><legend class="text-[18px] font-extrabold flex items-center gap-2">추가 선택 ${tag('선택')}</legend>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <label class="opt cursor-pointer"><input type="radio" name="sauce" ${state.detailOpts.sauce ? '' : 'checked'} onchange="state.detailOpts.sauce=!this.checked" class="sr-only"><span class="opt-face h-11 px-4 rounded-full border border-line bg-white text-[14px] font-semibold flex items-center gap-1.5 transition-colors duration-200">소스·양념 같이 <span class="opt-sub text-sub">+0원</span></span></label>
+          <label class="opt cursor-pointer"><input type="radio" name="sauce" ${state.detailOpts.sauce ? 'checked' : ''} onchange="state.detailOpts.sauce=this.checked" class="sr-only"><span class="opt-face h-11 px-4 rounded-full border border-line bg-white text-[14px] font-semibold flex items-center gap-1.5 transition-colors duration-200">소스·양념 따로 <span class="opt-sub text-sub">+0원</span></span></label>
+        </div></fieldset>
+    </div>
+    <div class="sticky bottom-0 bg-white border-t border-line px-5 pt-3 flex items-center gap-3" style="padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));">
+      <div class="flex items-center h-14 rounded-full bg-subtle px-1">
+        <button onclick="state.detailQty=Math.max(1,state.detailQty-1); renderDetail()" class="w-11 h-11 rounded-full flex items-center justify-center" aria-label="수량 줄이기"><i data-lucide="minus" class="w-5 h-5 ${state.detailQty === 1 ? 'text-weak' : ''}"></i></button>
+        <span class="w-6 text-center text-[17px] font-extrabold tnum">${state.detailQty}</span>
+        <button onclick="state.detailQty=Math.min(10,state.detailQty+1); renderDetail()" class="w-11 h-11 rounded-full flex items-center justify-center" aria-label="수량 늘리기"><i data-lucide="plus" class="w-5 h-5"></i></button>
+      </div>
+      <button ${m.orderable ? '' : 'disabled'} onclick="addFromDetail()" class="flex-1 min-w-0 h-14 rounded-full ${m.orderable ? 'bg-accent active:bg-accent-press text-white' : 'bg-subtle text-weak'} text-[18px] font-extrabold tnum truncate px-3">${m.orderable ? won(total) + ' 담기' : (m.restaurantOpen ? '오늘은 품절이에요' : '오늘은 식당이 쉬어요')}</button>
     </div>`;
   icons();
 }
@@ -1038,31 +1051,31 @@ function renderCart() {
   const canReserve = !!p.recTime;
   if (state.pickup === 'reserve' && !canReserve) { state.pickup = 'now'; }
   const total = cartTotal();
+  const seg = on => `text-left rounded-[11px] px-3.5 py-2.5 ${on ? 'bg-white shadow-card' : ''}`;
   document.getElementById('cartBody').innerHTML = `
-    <div class="pt-3 flex justify-center"><span class="w-10 h-1.5 rounded-full bg-slate-200"></span></div>
-    <div class="px-5 pt-2 flex items-center justify-between"><h2 class="text-[22px] font-extrabold">주문 확인</h2><button onclick="closeCart()" class="w-10 h-10 flex items-center justify-center" aria-label="닫기"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+    <div class="pt-2.5 flex justify-center"><span class="w-10 h-1 rounded-full bg-[#E5E8EB]"></span></div>
+    <div class="px-5 pt-2 flex items-center justify-between"><h2 class="text-[24px] font-extrabold">주문 확인</h2><button onclick="closeCart()" class="w-10 h-10 -mr-2 rounded-full flex items-center justify-center text-sub" aria-label="닫기"><i data-lucide="x" class="w-5 h-5"></i></button></div>
     <div class="flex-1 overflow-y-auto px-5 pb-4">
-      <p class="mt-3 text-[14px] font-semibold text-slate-600">받는 시간</p>
-      <div class="mt-2 grid grid-cols-2 gap-2" role="radiogroup">
-        <button role="radio" aria-checked="${state.pickup === 'now'}" onclick="state.pickup='now'; renderCart(); renderCartBar()" class="text-left rounded-2xl p-4 border-2 ${state.pickup === 'now' ? 'border-blue-500 bg-blue-50' : 'border-slate-100'}">
-          <span class="block text-[15px] font-extrabold ${state.pickup === 'now' ? 'text-blue-800' : ''}">지금 바로 받기</span><span class="block text-[13px] ${state.pickup === 'now' ? 'text-blue-800' : 'text-slate-500'}">대기 약 ${p.currentWait}분</span></button>
-        <button role="radio" aria-checked="${state.pickup === 'reserve'}" ${canReserve ? '' : 'disabled'} onclick="state.pickup='reserve'; renderCart(); renderCartBar()" class="relative text-left rounded-2xl p-4 border-2 ${state.pickup === 'reserve' ? 'border-blue-500 bg-blue-50' : 'border-slate-100'} ${canReserve ? '' : 'opacity-40'}">
-          <span class="absolute top-3 right-3 h-5 px-1.5 rounded-md bg-blue-700 text-white text-[11px] font-bold flex items-center">AI 추천</span>
-          <span class="block text-[15px] font-extrabold ${state.pickup === 'reserve' ? 'text-blue-800' : ''}">${p.recTime || '-'} 예약</span><span class="block text-[13px] ${state.pickup === 'reserve' ? 'text-blue-800' : 'text-slate-500'}">대기 약 ${p.recWait || '-'}분</span></button>
+      <p class="mt-3 text-[13px] font-semibold text-sub">받는 시간</p>
+      <div class="mt-2 grid grid-cols-2 gap-1 rounded-row bg-subtle p-1" role="radiogroup">
+        <button role="radio" aria-checked="${state.pickup === 'now'}" onclick="state.pickup='now'; renderCart(); renderCartBar()" class="${seg(state.pickup === 'now')}">
+          <span class="block text-[15px] font-bold ${state.pickup === 'now' ? 'text-accent' : 'text-sub'}">지금 바로 받기</span><span class="block text-[12px] font-medium text-sub tnum">대기 약 ${p.currentWait}분</span></button>
+        <button role="radio" aria-checked="${state.pickup === 'reserve'}" ${canReserve ? '' : 'disabled'} onclick="state.pickup='reserve'; renderCart(); renderCartBar()" class="${seg(state.pickup === 'reserve')} ${canReserve ? '' : 'opacity-40'}">
+          <span class="flex items-center gap-1.5"><span class="text-[15px] font-bold tnum ${state.pickup === 'reserve' ? 'text-accent' : 'text-sub'}">${p.recTime || '-'} 예약</span><span class="h-[18px] px-1.5 rounded-full bg-accent-soft text-accent-press text-[10px] font-bold flex items-center">AI 추천</span></span><span class="block text-[12px] font-medium text-sub tnum">대기 약 ${p.recWait || '-'}분</span></button>
       </div>
-      <p class="mt-5 text-[14px] font-semibold text-slate-600">담은 메뉴</p>
-      <ul>${state.cart.map(l => { const m = menu(l.id); return `<li class="py-3 flex items-center gap-3 border-b border-slate-100 last:border-0">
-        ${photo(m, 'w-14 h-14 rounded-xl shrink-0')}
-        <div class="flex-1 min-w-0"><p class="text-[15px] font-bold truncate">${m.name}</p><p class="text-[12px] text-slate-500 truncate">${m.ingredients && m.ingredients.rice ? '밥 ' + l.opts.rice : ''}${l.opts.sauce ? ' · 소스 따로' : ''}</p><p class="text-[14px] font-bold tnum">${won(linePrice(l))}</p></div>
-        <div class="flex items-center h-11 rounded-full border border-slate-200"><button onclick="changeLine('${l.key}',-1)" class="w-10 h-10 flex items-center justify-center" aria-label="빼기"><i data-lucide="minus" class="w-4 h-4"></i></button><span class="w-5 text-center font-bold tnum">${l.qty}</span><button onclick="changeLine('${l.key}',1)" class="w-10 h-10 flex items-center justify-center" aria-label="더하기"><i data-lucide="plus" class="w-4 h-4"></i></button></div>
+      <p class="mt-6 text-[13px] font-semibold text-sub">담은 메뉴</p>
+      <ul>${state.cart.map(l => { const m = menu(l.id); return `<li class="py-3 flex items-center gap-3 border-b border-line last:border-0">
+        ${photo(m, 'w-14 h-14 rounded-row shrink-0')}
+        <div class="flex-1 min-w-0"><p class="text-[15px] font-bold truncate">${m.name}</p><p class="text-[12px] font-medium text-sub truncate">${m.ingredients && m.ingredients.rice ? '밥 ' + l.opts.rice : ''}${l.opts.sauce ? ' · 소스 따로' : ''}</p><p class="text-[14px] font-extrabold tnum">${won(linePrice(l))}</p></div>
+        <div class="flex items-center h-9 rounded-full bg-subtle"><button onclick="changeLine('${l.key}',-1)" class="w-9 h-9 rounded-full flex items-center justify-center" aria-label="빼기"><i data-lucide="minus" class="w-4 h-4"></i></button><span class="w-5 text-center text-[14px] font-extrabold tnum">${l.qty}</span><button onclick="changeLine('${l.key}',1)" class="w-9 h-9 rounded-full flex items-center justify-center" aria-label="더하기"><i data-lucide="plus" class="w-4 h-4"></i></button></div>
       </li>`; }).join('')}</ul>
-      <p class="mt-5 text-[14px] font-semibold text-slate-600">결제 수단</p>
-      <div class="mt-2 grid grid-cols-2 gap-2">${PAY.map(x => `<button onclick="state.pay='${x.id}'; renderCart()" class="h-[52px] rounded-2xl border-2 px-3 flex items-center gap-2 text-[15px] font-semibold ${state.pay === x.id ? 'border-blue-500 bg-blue-50 text-blue-800' : 'border-slate-100'}"><i data-lucide="${x.icon}" class="w-5 h-5"></i>${x.label}</button>`).join('')}</div>
-      <p class="mt-4 text-[12px] text-slate-500">경진대회 시연용 모의 결제예요. 실제로 돈이 나가지 않아요.</p>
+      <p class="mt-6 text-[13px] font-semibold text-sub">결제 수단</p>
+      <div class="mt-2 flex flex-wrap gap-2">${PAY.map(x => `<button onclick="state.pay='${x.id}'; renderCart()" aria-pressed="${state.pay === x.id}" class="h-11 rounded-full px-4 flex items-center gap-1.5 text-[14px] font-semibold ${state.pay === x.id ? 'bg-accent text-white' : 'bg-subtle text-sub'}"><i data-lucide="${x.icon}" class="w-[18px] h-[18px]"></i>${x.label}</button>`).join('')}</div>
+      <p class="mt-4 text-[12px] font-medium text-sub">경진대회 시연용 모의 결제예요. 실제로 돈이 나가지 않아요.</p>
     </div>
-    <div class="px-5 pt-3 border-t border-slate-100" style="padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));">
-      ${o.open ? `<button id="payBtn" onclick="pay()" class="w-full h-14 rounded-2xl bg-blue-500 text-white text-[19px] font-extrabold flex items-center justify-center gap-2">${won(total)} 결제하기</button>`
-        : `<button disabled class="w-full h-14 rounded-2xl bg-slate-200 text-slate-500 text-[17px] font-bold">${o.label}${o.next ? ' · ' + o.next + '부터 주문할 수 있어요' : ''}</button>`}
+    <div class="px-5 pt-3 border-t border-line" style="padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));">
+      ${o.open ? `<button id="payBtn" onclick="pay()" class="w-full h-14 rounded-full bg-accent active:bg-accent-press disabled:bg-accent-press text-white text-[18px] font-extrabold flex items-center justify-center gap-2 tnum">${won(total)} 결제하기</button>`
+        : `<button disabled class="w-full h-14 rounded-full bg-subtle text-weak text-[16px] font-bold">${o.label}${o.next ? ' · ' + o.next + '부터 주문할 수 있어요' : ''}</button>`}
     </div>`;
   icons();
 }
@@ -1099,16 +1112,16 @@ function showDone(o) {
   const reserve = o.pickup_type === 'RESERVED';
   document.getElementById('doneCard').innerHTML = `
     <div class="flex justify-center pop"><svg width="80" height="80" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="30" fill="#E8F3FF"></circle><circle class="ring-draw" cx="40" cy="40" r="30" fill="none" stroke="#3182F6" stroke-width="5" stroke-linecap="round" transform="rotate(-90 40 40)"></circle><path class="tick-draw" d="M28 41 L36.5 49.5 L53 32.5" fill="none" stroke="#3182F6" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
-    <p class="mt-4 text-center text-[14px] font-semibold text-slate-500">주문번호</p>
-    <h2 class="text-center text-[34px] font-extrabold tnum">${S.orderNo(o.order_number)}</h2>
+    <p class="mt-4 text-center text-[13px] font-semibold text-sub">주문번호</p>
+    <h2 class="text-center text-[36px] leading-tight font-extrabold tnum">${S.orderNo(o.order_number)}</h2>
     <p class="text-center text-[17px] font-bold">접수 완료</p>
-    <p class="mt-1 text-center text-[14px] text-slate-600">${reserve ? o.pickup_time + '에 맞춰 조리를 시작할게요' : '약 ' + o.eta_minutes + '분 뒤 번호로 불러 드릴게요'}</p>
-    <dl class="mt-5 rounded-2xl bg-slate-50 p-4 space-y-2 text-[14px]">
-      <div class="flex justify-between gap-3"><dt class="text-slate-600 shrink-0">메뉴</dt><dd class="text-right font-medium">${o.items.map(i => i.menu_name + ' ' + i.quantity + '개').join(', ')}</dd></div>
-      <div class="flex justify-between"><dt class="text-slate-600">결제</dt><dd class="font-medium">${o.payment_method} ${won(o.total_price)}</dd></div>
-      <div class="flex justify-between"><dt class="text-slate-600">칼로리 기록</dt><dd class="font-medium">마이에 자동 기록했어요</dd></div>
+    <p class="mt-1 text-center text-[14px] font-medium text-sub">${reserve ? o.pickup_time + '에 맞춰 조리를 시작할게요' : '약 ' + o.eta_minutes + '분 뒤 번호로 불러 드릴게요'}</p>
+    <dl class="mt-5 rounded-card bg-subtle p-4 space-y-2 text-[14px]">
+      <div class="flex justify-between gap-3"><dt class="text-sub shrink-0">메뉴</dt><dd class="text-right font-semibold">${o.items.map(i => i.menu_name + ' ' + i.quantity + '개').join(', ')}</dd></div>
+      <div class="flex justify-between"><dt class="text-sub">결제</dt><dd class="font-semibold tnum">${o.payment_method} ${won(o.total_price)}</dd></div>
+      <div class="flex justify-between"><dt class="text-sub">칼로리 기록</dt><dd class="font-semibold">마이에 자동 기록했어요</dd></div>
     </dl>
-    <button onclick="closeDone(); go('orders')" class="mt-5 w-full h-14 rounded-2xl bg-blue-500 text-white text-[19px] font-extrabold">주문 현황 보기</button>`;
+    <button onclick="closeDone(); go('orders')" class="mt-5 w-full h-14 rounded-full bg-accent active:bg-accent-press text-white text-[18px] font-extrabold">주문 현황 보기</button>`;
   openLayer('done');
 }
 function closeDone() { closeLayer('done'); }
