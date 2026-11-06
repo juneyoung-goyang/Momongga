@@ -394,7 +394,7 @@ function renderHome() {
       ${rests.map((r, i) => { const q = pred.queues[r.id]; return `<button role="listitem" onclick="go('restaurant', { restaurant: '${r.id}' })" class="fu flex flex-col items-center gap-1 ${r.open ? '' : 'opacity-50'}" style="--i:${i + 2}" aria-label="${r.name}${r.open ? '' : ' (오늘 휴무)'}">
         ${restPhoto(r, 'w-14 h-14 rounded-row')}
         <span class="mt-0.5 text-[12px] font-semibold leading-tight text-ink text-center break-keep">${r.name}</span>
-        ${r.open ? (typeof q === 'number' ? `<span class="text-[11px] font-medium text-sub tnum">대기 ${q}분</span>` : '') : '<span class="text-[11px] font-bold text-bad">휴무</span>'}
+        ${r.open ? (typeof q === 'number' ? `<span class="text-[11px] font-medium text-sub tnum">${q > 0 ? '대기 ' + q + '분' : '바로 조리'}</span>` : '') : '<span class="text-[11px] font-bold text-bad">휴무</span>'}
       </button>`; }).join('')}
     </div>
 
