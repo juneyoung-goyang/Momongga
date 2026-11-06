@@ -4,72 +4,224 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MJC Table · 학생식당 스마트오더 플랫폼</title>
+<meta name="description" content="AI가 학생식당 대기 시간을 예측하고 덜 붐비는 시간에 예약하게 돕는 스마트오더 플랫폼">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
-  :root { --ink: #191F28; --sub: #4E5968; --line: #E5E8EB; --bg: #F9FAFB; --blue: #3182F6; --blue-deep: #194AA6; }
+  :root { --ink: #191F28; --sub: #4E5968; --weak: #8B95A1; --line: #E5E8EB; --bg: #F7F9FC; --blue: #3182F6; --blue-deep: #194AA6; --soft: #E8F3FF; }
   * { box-sizing: border-box; }
+  html, body { min-height: 100%; }
   body { margin: 0; font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; color: var(--ink); background: var(--bg); letter-spacing: -0.012em; word-break: keep-all; }
-  main { max-width: 1040px; margin: 0 auto; padding: 56px 24px 72px; }
-  h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.2; letter-spacing: -0.04em; margin: 0; }
-  .lead { margin: 14px 0 0; font-size: 17px; line-height: 1.6; color: var(--sub); max-width: 640px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 36px; }
-  a.card { display: flex; flex-direction: column; gap: 10px; padding: 24px; border-radius: 24px; background: #fff; border: 1px solid var(--line); color: inherit; text-decoration: none; transition: border-color 0.2s, transform 0.2s; }
-  a.card:hover { border-color: var(--blue); transform: translateY(-2px); }
+
+  /* 3D 배경: 화면 뒤에 고정, 클릭은 통과 */
+  #bg3d { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+  .veil { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(1200px 700px at 30% 20%, rgba(247,249,252,.55), rgba(247,249,252,.15) 60%, rgba(247,249,252,0)); }
+
+  main { position: relative; z-index: 1; max-width: 1040px; margin: 0 auto; padding: 64px 24px 72px; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px; border-radius: 999px; background: rgba(255,255,255,.85); border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--blue-deep); backdrop-filter: blur(8px); }
+  .badge i { width: 8px; height: 8px; border-radius: 50%; background: #03B26C; }
+  h1 { margin: 18px 0 0; font-size: clamp(34px, 6vw, 56px); line-height: 1.12; letter-spacing: -0.045em; }
+  h1 span { color: var(--blue); }
+  .lead { margin: 16px 0 0; font-size: 18px; line-height: 1.65; color: var(--sub); max-width: 660px; }
+
+  .points { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 28px; }
+  .point { padding: 18px 20px; border-radius: 20px; background: rgba(255,255,255,.82); border: 1px solid var(--line); backdrop-filter: blur(10px); }
+  .point b { display: block; font-size: 15px; }
+  .point span { display: block; margin-top: 6px; font-size: 13px; line-height: 1.55; color: var(--sub); }
+  .point em { font-style: normal; font-weight: 800; color: var(--blue); }
+
+  .grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 28px; }
+  @media (min-width: 720px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  a.card { display: flex; flex-direction: column; gap: 10px; padding: 24px; border-radius: 24px; background: rgba(255,255,255,.9); border: 1px solid var(--line); color: inherit; text-decoration: none; backdrop-filter: blur(12px); transition: border-color .2s, transform .2s, box-shadow .2s; }
+  a.card:hover { border-color: var(--blue); transform: translateY(-3px); box-shadow: 0 10px 28px rgba(25,31,40,.08); }
   a.card:focus-visible { outline: 3px solid #5498F8; outline-offset: 3px; }
   .who { font-size: 13px; font-weight: 700; color: var(--blue-deep); }
   .card h2 { margin: 0; font-size: 22px; letter-spacing: -0.03em; }
   .card p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--sub); }
   .open { margin-top: auto; padding-top: 8px; font-size: 15px; font-weight: 700; color: var(--blue); }
-  section.demo { margin-top: 40px; padding: 28px; border-radius: 24px; background: #fff; border: 1px solid var(--line); }
+
+  section.demo { margin-top: 32px; padding: 28px; border-radius: 24px; background: rgba(255,255,255,.92); border: 1px solid var(--line); backdrop-filter: blur(12px); }
   section.demo h2 { margin: 0; font-size: 20px; }
   ol { margin: 14px 0 0; padding-left: 20px; line-height: 1.9; font-size: 15px; color: var(--sub); }
   ol b { color: var(--ink); }
-  .note { margin-top: 16px; font-size: 13px; color: var(--sub); }
+  .note { margin-top: 16px; font-size: 13px; line-height: 1.6; color: var(--weak); }
+  footer { position: relative; z-index: 1; text-align: center; padding: 0 24px 40px; font-size: 12px; color: var(--weak); }
+  @media (max-width: 560px) { main { padding-top: 40px; } .lead { font-size: 16px; } }
 </style>
 </head>
 <body>
+<canvas id="bg3d" aria-hidden="true"></canvas>
+<div class="veil" aria-hidden="true"></div>
+
 <main>
-  <h1>MJC Table<br>줄 서지 않는 학생식당</h1>
-  <p class="lead">학생 앱, 직원 POS, 관리자 프로그램이 하나의 데이터로 실시간 연결돼요. AI가 조리실 대기를 예측해 덜 붐비는 시간에 예약하도록 돕고, 말로 물어보면 남은 칼로리와 최근 식사까지 보고 메뉴를 골라 줘요.</p>
+  <span class="badge"><i></i>명지전문대 AI:ON 2026 · 1단계 시연</span>
+  <h1>MJC Table<br><span>줄 서지 않는</span> 학생식당</h1>
+  <p class="lead">학생 앱, 직원 POS, 관리자 프로그램이 하나의 데이터로 실시간 연결돼요. AI가 대기 시간을 예측해 덜 붐비는 시간에 예약하도록 돕고, 말로 물어보면 오늘 메뉴 데이터에서 찾아 바로 담아 줘요.</p>
+
+  <div class="points">
+    <div class="point"><b>AI 대기 예측</b><span>랜덤포레스트 · 변수 <em>14개</em><br>메뉴 정보를 넣어 평균 오차 <em>1.56→1.21분</em></span></div>
+    <div class="point"><b>말로 주문 (NL2SQL)</b><span>Gemini가 질문을 SQL로 바꾸고<br>앱이 실제 메뉴 데이터에서 실행해 확인</span></div>
+    <div class="point"><b>실시간 연동</b><span>주문 → POS 접수 → 조리 → 수령 알림<br>품절·휴무도 앱에 바로 반영</span></div>
+  </div>
 
   <div class="grid">
     <a class="card" href="app/index.html" target="_blank" rel="noopener">
-      <span class="who">학생 · 아이폰</span>
+      <span class="who">학생 · 휴대폰</span>
       <h2>학생 앱</h2>
-      <p>대기 예측과 예약 주문, AI 메뉴 추천(자연어), 칼로리 기록, 주문 현황 알림</p>
-      <span class="open">앱 열기</span>
+      <p>AI 대기 예측과 예약 주문, 말로 묻는 메뉴 추천(모두 담기 · 바로 주문), 칼로리 기록, 주문 현황 알림</p>
+      <span class="open">앱 열기 →</span>
     </a>
     <a class="card" href="pos/index.html" target="_blank" rel="noopener">
       <span class="who">조리실 직원 · PC</span>
       <h2>직원 POS</h2>
-      <p>실시간 주문 접수, 조리 진행과 예상 시간, 픽업 호출, 픽업 보드</p>
-      <span class="open">POS 열기</span>
+      <p>실시간 주문 칸반(접수 · 조리 중 · 준비 완료), 식당별 필터, 품절 관리, 픽업 호출과 픽업 보드</p>
+      <span class="open">POS 열기 →</span>
     </a>
     <a class="card" href="admin/index.html" target="_blank" rel="noopener">
       <span class="who">식당 관리자 · PC</span>
       <h2>관리자</h2>
-      <p>메뉴·가격·품절, 영업시간, 재고와 발주, AI 예측 설정, 매출 대시보드</p>
-      <span class="open">관리자 열기</span>
+      <p>메뉴 · 가격 · 품절, 영업시간, 재고와 발주, 매출 대시보드, AI 예측 탭(모델 비교 · AI 효과)</p>
+      <span class="open">관리자 열기 →</span>
     </a>
     <a class="card" href="docs/architecture.html" target="_blank" rel="noopener">
       <span class="who">발표 · 심사용</span>
       <h2>AI 구조</h2>
-      <p>프로그램 3개와 AI 2개가 어떻게 연결되는지, 예측 모델의 X·Y와 자연어 추천 흐름</p>
-      <span class="open">구조 보기</span>
+      <p>프로그램 3개와 AI 2개가 어떻게 연결되는지, 예측에 쓰는 정보와 맞히는 값, 자연어 추천 흐름</p>
+      <span class="open">구조 보기 →</span>
     </a>
   </div>
 
   <section class="demo" aria-labelledby="demoTitle">
-    <h2 id="demoTitle">시연 순서 (영상 3~5분)</h2>
+    <h2 id="demoTitle">직접 써 보는 순서 (약 3분)</h2>
     <ol>
       <li><b>직원 POS</b>를 열고 아래 '초기화'를 눌러 시연 데이터(16건, 99,000원)로 맞춰요.</li>
-      <li><b>학생 앱</b> 홈에서 AI 대기 예측을 보여 주고 '예약 주문'으로 덜 붐비는 시간에 주문해요. 관리자 대시보드의 'AI 효과'에 바로 반영돼요.</li>
-      <li>AI 추천 탭에서 "고기 말고 국물 있는 거, 10분 안에"처럼 말로 물어보고 'AI가 만든 SQL'을 펼쳐 보여요.</li>
-      <li>결제하면 <b>직원 POS</b>에 주문이 바로 뜨고, 조리 시작과 픽업 알림을 누르면 앱에 "나왔어요" 알림이 와요.</li>
-      <li><b>관리자</b>에서 가격이나 품절을 바꾸고, 시험기간·비 소식을 켜서 학생 앱의 예측이 바로 바뀌는 걸 보여요.</li>
+      <li><b>학생 앱</b> 홈에서 AI 대기 예측(지금 대기와 시간대별 그래프)을 보고, '예약 주문'으로 덜 붐비는 시간에 주문해요.</li>
+      <li>AI 추천 탭에서 "참치김밥 1개 갈비탕 1개 담아줘"나 "고기 말고 국물 있는 거, 10분 안에"처럼 말로 물어보고, 'AI가 만든 SQL 보기'를 펼쳐요.</li>
+      <li>결제하면 <b>직원 POS</b>에 주문이 바로 뜨고, 조리 시작과 준비 완료를 누르면 앱에 수령 알림이 와요.</li>
+      <li><b>관리자</b> AI 예측 탭에서 시험기간 · 비 소식을 켜면 학생 앱의 예측이 바로 바뀌고, AI 효과(예약으로 줄인 대기)를 확인할 수 있어요.</li>
     </ol>
-    <p class="note">같은 브라우저의 탭끼리는 바로 연결돼요. 휴대폰과 노트북처럼 다른 기기를 연결하려면 shared/supabase-sync.js에 Supabase 주소와 키를 넣어 주세요.</p>
+    <p class="note">앱 · POS · 관리자는 같은 브라우저의 탭끼리 실시간으로 연결돼요(1단계는 브라우저 저장, 2단계에서 서버 DB 연결 예정). 화면의 주문 · 매출 · 정확도 숫자는 모두 시연용 가상 데이터와 합성 데이터 기준이에요.</p>
   </section>
 </main>
+<footer>MJC Table · 팀 모몽가</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* 귀여운 3D 음식 배경 (three.js) — 실패해도 페이지는 그대로 동작 */
+(function () {
+  var canvas = document.getElementById('bg3d');
+  if (!window.THREE || !canvas) { return; }
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var T = THREE;
+  var renderer;
+  try { renderer = new T.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); } catch (e) { return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  var scene = new T.Scene();
+  var camera = new T.PerspectiveCamera(40, 1, 0.1, 100);
+  camera.position.set(0, 0, 18);
+
+  scene.add(new T.HemisphereLight(0xffffff, 0xdfe8f5, 0.95));
+  var sun = new T.DirectionalLight(0xffffff, 0.55); sun.position.set(5, 8, 10); scene.add(sun);
+
+  function mat(c) { return new T.MeshStandardMaterial({ color: c, roughness: 0.55, metalness: 0.0, flatShading: false }); }
+  var C = { bowl: 0xBFD9FF, rim: 0x8DBBFF, rice: 0xFFFFFF, nori: 0x2E3A46, egg: 0xFFFFFF, yolk: 0xFFC94D, pot: 0x6B7684, soup: 0xFF9B7A, tteok: 0xFFB3A7, pink: 0xFFD6E0, mint: 0xC8F0DE, cheek: 0xFF9DB0, eye: 0x2A2F36 };
+
+  /* 얼굴(눈 2개 + 볼터치) — 귀여움 담당 */
+  function face(g, y, z, s) {
+    var eg = new T.SphereGeometry(0.07 * s, 12, 12), cg = new T.SphereGeometry(0.1 * s, 12, 12);
+    [-1, 1].forEach(function (d) {
+      var e = new T.Mesh(eg, mat(C.eye)); e.position.set(0.22 * s * d, y, z); g.add(e);
+      var c = new T.Mesh(cg, mat(C.cheek)); c.scale.set(1, 0.6, 0.4); c.position.set(0.38 * s * d, y - 0.12 * s, z - 0.02); g.add(c);
+    });
+  }
+  function bowl() {
+    var g = new T.Group();
+    var b = new T.Mesh(new T.SphereGeometry(1, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), mat(C.bowl)); g.add(b);
+    var rim = new T.Mesh(new T.TorusGeometry(1, 0.08, 12, 40), mat(C.rim)); rim.rotation.x = Math.PI / 2; g.add(rim);
+    var rice = new T.Mesh(new T.SphereGeometry(0.92, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2.6), mat(C.rice)); rice.position.y = -0.18; g.add(rice);
+    face(g, -0.35, 0.93, 1);
+    return g;
+  }
+  function onigiri() {
+    var g = new T.Group();
+    var r = new T.Mesh(new T.CylinderGeometry(0.95, 0.95, 0.7, 3, 1), mat(C.rice)); r.rotation.x = Math.PI / 2; r.rotation.y = Math.PI / 2; g.add(r);
+    var n = new T.Mesh(new T.BoxGeometry(0.75, 0.55, 0.74), mat(C.nori)); n.position.y = -0.35; g.add(n);
+    face(g, 0.05, 0.37, 0.9);
+    return g;
+  }
+  function egg() {
+    var g = new T.Group();
+    var w = new T.Mesh(new T.CylinderGeometry(0.9, 0.95, 0.16, 32), mat(C.egg)); w.rotation.x = Math.PI / 2; g.add(w);
+    var y = new T.Mesh(new T.SphereGeometry(0.42, 24, 16), mat(C.yolk)); y.scale.z = 0.6; y.position.z = 0.12; g.add(y);
+    face(g, 0.02, 0.36, 0.6);
+    return g;
+  }
+  function pot() {
+    var g = new T.Group();
+    var p = new T.Mesh(new T.CylinderGeometry(0.95, 0.75, 0.9, 32), mat(C.pot)); g.add(p);
+    var s = new T.Mesh(new T.CylinderGeometry(0.86, 0.86, 0.06, 32), mat(C.soup)); s.position.y = 0.42; g.add(s);
+    [-1, 1].forEach(function (d) { var h = new T.Mesh(new T.TorusGeometry(0.18, 0.06, 8, 16), mat(C.pot)); h.position.set(1.0 * d, 0.2, 0); h.rotation.y = Math.PI / 2; g.add(h); });
+    face(g, -0.05, 0.87, 0.9);
+    return g;
+  }
+  function tteok() {
+    var g = new T.Group();
+    var t = new T.Mesh(new T.CylinderGeometry(0.3, 0.3, 0.9, 20), mat(C.tteok)); t.rotation.z = Math.PI / 2; g.add(t);
+    [-1, 1].forEach(function (d) { var e = new T.Mesh(new T.SphereGeometry(0.3, 20, 16), mat(C.tteok)); e.position.x = 0.45 * d; g.add(e); });
+    face(g, 0.02, 0.29, 0.55);
+    return g;
+  }
+  function dango(c) { var m = new T.Mesh(new T.SphereGeometry(0.35, 20, 16), mat(c)); return m; }
+
+  /* 글씨를 가리지 않게 화면 양옆으로만 배치 */
+  var side = 0;
+  function sideX() { side = 1 - side; var d = side ? 1 : -1; return narrow ? d * (3.2 + Math.random() * 2.5) : d * (7.5 + Math.random() * 5.5); }
+
+  var makers = [bowl, onigiri, egg, pot, tteok, bowl, onigiri, egg, pot, tteok, bowl, onigiri];
+  var items = [];
+  var narrow = window.innerWidth < 700;
+  var count = narrow ? 8 : 12;
+  for (var i = 0; i < count; i++) {
+    var o = makers[i % makers.length]();
+    var s = 0.75 + Math.random() * 0.55;
+    o.scale.setScalar(s);
+    o.position.set(sideX(), (Math.random() - 0.5) * 15, -2 - Math.random() * 7);
+    o.rotation.set((Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 0.5);
+    o.userData = { base: o.position.clone(), sp: 0.35 + Math.random() * 0.5, ph: Math.random() * Math.PI * 2, rs: (Math.random() - 0.5) * 0.25 };
+    scene.add(o); items.push(o);
+  }
+  for (var k = 0; k < (narrow ? 8 : 16); k++) {
+    var d = dango([C.pink, C.mint, C.yolk, C.bowl][k % 4]);
+    d.position.set(sideX() * 1.15, (Math.random() - 0.5) * 18, -6 - Math.random() * 6);
+    d.userData = { base: d.position.clone(), sp: 0.3 + Math.random() * 0.4, ph: Math.random() * 6, rs: 0 };
+    scene.add(d); items.push(d);
+  }
+
+  var mx = 0, my = 0, tx = 0, ty = 0;
+  window.addEventListener('pointermove', function (e) { tx = (e.clientX / window.innerWidth - 0.5); ty = (e.clientY / window.innerHeight - 0.5); }, { passive: true });
+
+  function resize() {
+    var w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize); resize();
+
+  var t0 = performance.now();
+  function frame(now) {
+    var t = (now - t0) / 1000;
+    mx += (tx - mx) * 0.04; my += (ty - my) * 0.04;
+    camera.position.x = mx * 2.2; camera.position.y = -my * 1.6; camera.lookAt(0, 0, -4);
+    items.forEach(function (o) {
+      var u = o.userData;
+      o.position.y = u.base.y + Math.sin(t * u.sp + u.ph) * 0.45;
+      o.position.x = u.base.x + Math.cos(t * u.sp * 0.6 + u.ph) * 0.2;
+      o.rotation.y += u.rs * 0.01; o.rotation.z = Math.sin(t * u.sp + u.ph) * 0.12;
+    });
+    renderer.render(scene, camera);
+    if (!reduce && !document.hidden) { requestAnimationFrame(frame); }
+  }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && !reduce) { requestAnimationFrame(frame); } });
+  requestAnimationFrame(frame);
+})();
+</script>
 </body>
 </html>
