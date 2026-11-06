@@ -102,6 +102,20 @@ function allowedOrigin(origin) {
   return allow.includes(origin.replace(/\/+$/, ''));
 }
 
+/* 하루 전체 요청 상한: 키가 새어 나가도 무료 사용량을 다 쓰지 않게 막음 (서버 인스턴스 기준) */
+let day = { date: '', count: 0 };
+function overDaily() {
+  const max = Number(process.env.DAILY_LIMIT || 800);
+  const today = new Date().toISOString().slice(0, 10);
+  if (day.date !== today) { day = { date: today, count: 0 }; }
+  day.count += 1;
+  return day.count > max;
+}
+
+/* 우리 앱이 만든 프롬프트인지 확인: 아무 질문이나 대신 보내 주는 '공짜 AI 창구'로 쓰이지 않게 막음 */
+const SYSTEM_PREFIX = '너는 명지전문대 학생식당 앱';
+const MAX_QUESTION = 300;
+
 function limited(ip) {
   const max = Number(process.env.RATE_LIMIT_PER_MIN || 15);
   const now = Date.now();
@@ -157,7 +171,9 @@ exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') { return { statusCode: 405, body: 'Method Not Allowed' }; }
 
   const headers = event.headers || {};
-  if (!allowedOrigin(headers.origin || headers.Origin)) { return reply(403, { error: '허용되지 않은 사이트에서의 요청이에요' }); }
+  const origin = headers.origin || headers.Origin;
+  /* 브라우저의 POST 요청에는 항상 Origin이 붙음. Origin이 없으면 브라우저 밖(스크립트 등)에서 온 요청이라 거절 */
+  if (!origin || !allowedOrigin(origin)) { return reply(403, { error: '허용되지 않은 사이트에서의 요청이에요' }); }
   const ip = headers['x-nf-client-connection-ip'] || (headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
   if (limited(ip)) { return reply(429, { error: '잠시 후 다시 시도해 주세요 (요청이 너무 많아요)' }); }
   if ((event.body || '').length > 45000) { return reply(413, { error: '요청이 너무 커요' }); }
@@ -169,6 +185,10 @@ exports.handler = async function (event) {
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
     .map(m => ({ role: m.role, content: m.content.slice(0, 2000) }));
   if (!messages.length) { return reply(400, { error: 'messages가 비어 있어요' }); }
+  if (!system.startsWith(SYSTEM_PREFIX)) { return reply(400, { error: '이 앱의 메뉴 추천 요청만 처리해요' }); }
+  const last = messages[messages.length - 1];
+  if (last.role !== 'user' || last.content.length > MAX_QUESTION) { return reply(400, { error: '질문은 ' + MAX_QUESTION + '자 이내로 해 주세요' }); }
+  if (overDaily()) { return reply(429, { error: '오늘 AI 사용량을 모두 썼어요. 기본 추천으로 안내할게요' }); }
 
   if (p.name === 'baze' || p.name === 'gemini') {
     const isGemini = p.name === 'gemini';

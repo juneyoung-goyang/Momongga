@@ -493,7 +493,7 @@ function renderAI() {
     <div class="max-w-[430px] mx-auto bg-white border-t border-slate-100 px-3 pt-2.5 pb-3">
       <div class="flex gap-2 overflow-x-auto no-scrollbar pb-2.5">${CHIPS.map(c => `<button onclick="sendChat('${c}')" class="shrink-0 h-9 px-3.5 rounded-full border border-slate-200 text-[13px] font-semibold text-slate-700">${c}</button>`).join('')}</div>
       <form onsubmit="event.preventDefault(); submitChat();" class="flex gap-2">
-        <input id="chatInput" autocomplete="off" placeholder="예: 10분 안에 나오는 순한 국물 메뉴" class="flex-1 min-w-0 h-12 rounded-2xl bg-slate-100 px-4 text-[15px] outline-none focus:bg-white focus:ring-2 focus:ring-blue-500">
+        <input id="chatInput" autocomplete="off" maxlength="300" placeholder="예: 10분 안에 나오는 순한 국물 메뉴" class="flex-1 min-w-0 h-12 rounded-2xl bg-slate-100 px-4 text-[15px] outline-none focus:bg-white focus:ring-2 focus:ring-blue-500">
         <button class="w-12 h-12 rounded-2xl bg-blue-500 text-white flex items-center justify-center" aria-label="보내기" ${state.chatBusy ? 'disabled' : ''}><i data-lucide="send" class="w-5 h-5"></i></button>
       </form>
     </div>
