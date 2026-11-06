@@ -130,7 +130,7 @@ const CHIPS = ['고기 말고 국물 있는 거', '10분 안에 받을 수 있�
 const state = {
   tab: 'home', category: '전체', sort: 'fast',
   cart: [], pickup: 'now', pay: 'toss',
-  detailId: null, detailQty: 1, detailOpts: { rice: '보통', sauce: false }, detailReq: '',
+  detailId: null, detailQty: 1, detailOpts: { rice: '보통', sauce: false },
   chat: [], chatBusy: false,
   lastRaw: '', knownStatus: {}, toastTimer: null, doneTimer: null,
   server: { ready: false, reason: 'checking' }
@@ -500,18 +500,40 @@ function chatHTML(msg) {
   }
   const r = msg.result;
   const pred = r.pred || S.predict();
+  if (!r.uid) { r.uid = ++aiUidSeq; }
+  const items = (r.action && Array.isArray(r.action.items)) ? r.action.items.filter(it => menu(it.menu_id)) : [];
+  const multi = items.length >= 2;
+  const qtyOf = id => { const it = items.find(x => x.menu_id === id); return it ? it.qty : 0; };
   const rows = (r.menus || []).map(m => `<div class="flex items-center gap-3 rounded-2xl bg-slate-50 p-2.5">
       ${photo(m, 'w-14 h-14 rounded-xl shrink-0')}
-      <button onclick="openDetail(${m.menu_id})" class="flex-1 min-w-0 text-left"><span class="block text-[15px] font-bold truncate">${m.name}</span>
+      <button onclick="openDetail(${m.menu_id})" class="flex-1 min-w-0 text-left"><span class="block text-[15px] font-bold truncate">${m.name}${multi && qtyOf(m.menu_id) ? ` <span class="text-blue-700">${qtyOf(m.menu_id)}개</span>` : ''}</span>
         <span class="block text-[12px] text-slate-600">지금 ${S.menuWait(m, pred)}분 · ${m.kcal}kcal · ${won(m.price)}</span></button>
       <button onclick="quickAdd(${m.menu_id})" class="w-11 h-11 flex items-center justify-center" aria-label="${m.name} 담기"><span class="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center"><i data-lucide="plus" class="w-4 h-4"></i></span></button>
     </div>`).join('');
   const top = (r.menus || [])[0];
   let action = '';
+  const itemsStr = items.map(it => it.menu_id + ':' + it.qty).join(',');
+  /* 2개 이상: 합계는 AI 문장이 아니라 앱이 계산 (가격 합, 가장 늦게 나오는 메뉴 기준 시간) */
+  const orderable = items.filter(it => menu(it.menu_id).orderable);
+  const sumPrice = orderable.reduce((t, it) => t + menu(it.menu_id).price * it.qty, 0);
+  const sumCount = orderable.reduce((t, it) => t + it.qty, 0);
+  const maxWait = orderable.reduce((t, it) => Math.max(t, S.menuWait(menu(it.menu_id), pred)), 0);
+  const summary = multi && orderable.length ? `<p class="mt-3 text-[13px] text-slate-600">${sumCount}개 · 합계 <b class="text-slate-900">${won(sumPrice)}</b> · 가장 늦게 나오는 메뉴 기준 약 ${maxWait}분</p>` : '';
+  const added = !!aiAdded[r.uid];
   if (top && r.action && r.action.type === 'reserve' && pred.recTime) {
-    action = `<button onclick="aiReserve(${(r.action.menu_id || top.menu_id)})" class="mt-3 w-full h-12 rounded-2xl bg-blue-700 text-white text-[15px] font-bold flex items-center justify-center gap-1.5"><i data-lucide="calendar-clock" class="w-[18px] h-[18px]"></i>${menu(r.action.menu_id || top.menu_id).short} ${pred.recTime} 예약으로 담기</button>`;
+    if (multi) {
+      action = `${summary}<button onclick="aiReserveAll('${itemsStr}', ${r.uid})" class="mt-3 w-full h-12 rounded-2xl bg-blue-700 text-white text-[15px] font-bold flex items-center justify-center gap-1.5"><i data-lucide="calendar-clock" class="w-[18px] h-[18px]"></i>모두 ${pred.recTime} 예약으로 담기</button>`;
+    } else {
+      action = `<button onclick="aiReserve(${(r.action.menu_id || top.menu_id)})" class="mt-3 w-full h-12 rounded-2xl bg-blue-700 text-white text-[15px] font-bold flex items-center justify-center gap-1.5"><i data-lucide="calendar-clock" class="w-[18px] h-[18px]"></i>${menu(r.action.menu_id || top.menu_id).short} ${pred.recTime} 예약으로 담기</button>`;
+    }
   } else if (top && r.action && r.action.type === 'add') {
-    action = `<button onclick="aiAdd(${(r.action.menu_id || top.menu_id)})" class="mt-3 w-full h-12 rounded-2xl bg-blue-700 text-white text-[15px] font-bold">${menu(r.action.menu_id || top.menu_id).short} 바로 담기</button>`;
+    if (multi) {
+      action = `${summary}
+        <button id="aiAddAll${r.uid}" onclick="aiAddAll('${itemsStr}', ${r.uid})" ${added ? 'disabled' : ''} class="mt-3 w-full h-12 rounded-2xl ${added ? 'bg-slate-100 text-slate-500' : 'bg-blue-50 text-blue-800'} text-[15px] font-bold flex items-center justify-center gap-1.5"><i data-lucide="${added ? 'check' : 'shopping-bag'}" class="w-[18px] h-[18px]"></i>${added ? '장바구니에 담았어요' : '모두 담기'}</button>
+        <button onclick="aiOrderNow('${itemsStr}', ${r.uid})" class="mt-2 w-full h-12 rounded-2xl bg-blue-700 text-white text-[15px] font-bold">바로 주문하기</button>`;
+    } else {
+      action = `<button onclick="aiAdd(${(r.action.menu_id || top.menu_id)})" class="mt-3 w-full h-12 rounded-2xl bg-blue-700 text-white text-[15px] font-bold">${menu(r.action.menu_id || top.menu_id).short} 바로 담기</button>`;
+    }
   }
   const engine = r.engine === 'llm' ? `${esc(r.model || 'AI')} 모델이 답했어요${r.via === 'server' ? ' (서버 연결)' : ''}` : '규칙 기반으로 답했어요';
   return `<div class="flex gap-2 rise"><span class="w-8 h-8 rounded-xl bg-blue-500 text-white flex items-center justify-center shrink-0"><i data-lucide="sparkles" class="w-4 h-4"></i></span>
@@ -553,6 +575,34 @@ async function sendChat(q) {
 }
 function scrollChat() { setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 50); }
 function markAI(id) { const l = state.cart.find(x => x.id === Number(id)); if (l) { l.fromAI = true; } }
+const aiAdded = {}; let aiUidSeq = 0;
+function aiParseItems(str) { return String(str).split(',').map(p => { const [id, q] = p.split(':'); return { id: Number(id), qty: Math.max(1, Math.min(9, Number(q) || 1)) }; }); }
+/* 여러 메뉴를 한 번에 담기. 같은 답변에서 두 번 담기지 않도록 uid로 기억. 담은 개수를 돌려줌(0이면 실패) */
+function aiAddAll(str, uid, silent) {
+  if (aiAdded[uid]) { if (!silent) { toast('이미 담았어요', 'info'); } return -1; }
+  const list = aiParseItems(str).filter(it => { const m = menu(it.id); return m && m.orderable; });
+  if (!list.length) { toast('지금 담을 수 있는 메뉴가 없어요', 'info'); return 0; }
+  list.forEach(it => { addToCart(it.id, it.qty, { rice: '보통', sauce: false }, ''); markAI(it.id); });
+  aiAdded[uid] = true;
+  renderCartBar();
+  const btn = document.getElementById('aiAddAll' + uid);
+  if (btn) { btn.disabled = true; btn.className = btn.className.replace('bg-blue-50 text-blue-800', 'bg-slate-100 text-slate-500'); btn.innerHTML = '<i data-lucide="check" class="w-[18px] h-[18px]"></i>장바구니에 담았어요'; icons(); }
+  const n = list.reduce((t, it) => t + it.qty, 0);
+  const skipped = aiParseItems(str).length - list.length;
+  if (!silent) { toast(list.length + '가지 메뉴, ' + n + '개를 담았어요' + (skipped ? ' (품절·휴무 ' + skipped + '개 제외)' : ''), 'check'); }
+  return n;
+}
+/* 모두 담고 바로 결제 창 열기 (이미 담았다면 다시 담지 않고 결제 창만 열기) */
+function aiOrderNow(str, uid) {
+  const r = aiAddAll(str, uid, true);
+  if (r === 0) { return; }
+  state.pickup = 'now'; renderCartBar(); openCart();
+}
+function aiReserveAll(str, uid) {
+  const r = aiAddAll(str, uid, true);
+  if (r === 0) { return; }
+  state.pickup = 'reserve'; renderCartBar(); openCart(); toast('예약 주문으로 담았어요', 'calendar-clock');
+}
 function aiReserve(id) { addToCart(id, 1, { rice: '보통', sauce: false }, ''); markAI(id); state.pickup = 'reserve'; renderCartBar(); openCart(); toast('예약 주문으로 담았어요', 'calendar-clock'); }
 function aiAdd(id) { addToCart(id, 1, { rice: '보통', sauce: false }, ''); markAI(id); renderCartBar(); toast(menu(id).name + ' 담았어요'); }
 
@@ -795,7 +845,7 @@ function openWhy() {
 function openDetail(id) {
   const m = menu(id);
   if (!m) { return; }
-  state.detailId = id; state.detailQty = 1; state.detailOpts = { rice: '보통', sauce: false }; state.detailReq = '';
+  state.detailId = id; state.detailQty = 1; state.detailOpts = { rice: '보통', sauce: false };
   renderDetail();
   openLayer('detail');
 }
@@ -827,8 +877,6 @@ function renderDetail() {
         ${['보통', '곱빼기'].map(v => `<label class="flex items-center gap-3 h-12 text-[15px]"><input type="radio" name="rice" ${state.detailOpts.rice === v ? 'checked' : ''} onchange="state.detailOpts.rice='${v}'; renderDetail()" class="w-[22px] h-[22px] accent-[#3182F6]"><span class="flex-1">${v}</span><span class="text-slate-500">+${v === '곱빼기' ? '500' : '0'}원</span></label>`).join('')}</fieldset>` : ''}
       <fieldset class="mt-4"><legend class="text-[17px] font-extrabold flex items-center gap-2">추가 선택 ${tag('선택')}</legend>
         <label class="flex items-center gap-3 h-12 text-[15px]"><input type="checkbox" ${state.detailOpts.sauce ? 'checked' : ''} onchange="state.detailOpts.sauce=this.checked" class="w-[22px] h-[22px] accent-[#3182F6]"><span class="flex-1">소스·양념 따로</span><span class="text-slate-500">+0원</span></label></fieldset>
-      <label for="req" class="mt-4 block text-[17px] font-extrabold">요청사항</label>
-      <input id="req" maxlength="40" value="${esc(state.detailReq)}" oninput="state.detailReq=this.value" placeholder="예: 수저 하나 더 주세요" class="mt-2 w-full h-12 rounded-xl border border-slate-200 px-3 text-[15px] outline-none focus:ring-2 focus:ring-blue-500">
     </div>
     <div class="sticky bottom-0 bg-white border-t border-slate-100 px-5 pt-3 flex items-center gap-3" style="padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));">
       <div class="flex items-center h-[52px] rounded-full border border-slate-200 px-1">
@@ -842,7 +890,7 @@ function renderDetail() {
 }
 function addFromDetail() {
   const m = menu(state.detailId);
-  addToCart(m.menu_id, state.detailQty, Object.assign({}, state.detailOpts), state.detailReq);
+  addToCart(m.menu_id, state.detailQty, Object.assign({}, state.detailOpts));
   closeDetail();
   toast(m.name + ' 담았어요');
 }
@@ -850,13 +898,13 @@ function closeDetail() { closeLayer('detail'); }
 
 /* ---------- 장바구니 ---------- */
 function lineKey(id, opts) { return id + '|' + opts.rice + '|' + (opts.sauce ? 1 : 0); }
-function addToCart(id, qty, opts, req) {
+function addToCart(id, qty, opts) {
   const m = menu(id);
   if (!m || !m.orderable) { toast(m && !m.restaurantOpen ? '오늘은 이 식당이 쉬어요' : '품절된 메뉴는 담을 수 없어요', 'info'); return; }
   opts = opts || { rice: '보통', sauce: false };
   const key = lineKey(id, opts);
   const line = state.cart.find(l => l.key === key);
-  if (line) { line.qty += qty; if (req) { line.req = req; } } else { state.cart.push({ key, id: Number(id), qty, opts, req: req || '' }); }
+  if (line) { line.qty += qty; } else { state.cart.push({ key, id: Number(id), qty, opts }); }
   renderCartBar();
 }
 function quickAdd(id) { const m = menu(id); addToCart(id, 1); if (m && m.orderable) { toast(m.name + ' 담았어요'); } }
@@ -908,7 +956,7 @@ function renderCart() {
       <p class="mt-5 text-[14px] font-semibold text-slate-600">담은 메뉴</p>
       <ul>${state.cart.map(l => { const m = menu(l.id); return `<li class="py-3 flex items-center gap-3 border-b border-slate-100 last:border-0">
         ${photo(m, 'w-14 h-14 rounded-xl shrink-0')}
-        <div class="flex-1 min-w-0"><p class="text-[15px] font-bold truncate">${m.name}</p><p class="text-[12px] text-slate-500 truncate">${m.ingredients && m.ingredients.rice ? '밥 ' + l.opts.rice : ''}${l.opts.sauce ? ' · 소스 따로' : ''}${l.req ? ' · ' + esc(l.req) : ''}</p><p class="text-[14px] font-bold tnum">${won(linePrice(l))}</p></div>
+        <div class="flex-1 min-w-0"><p class="text-[15px] font-bold truncate">${m.name}</p><p class="text-[12px] text-slate-500 truncate">${m.ingredients && m.ingredients.rice ? '밥 ' + l.opts.rice : ''}${l.opts.sauce ? ' · 소스 따로' : ''}</p><p class="text-[14px] font-bold tnum">${won(linePrice(l))}</p></div>
         <div class="flex items-center h-11 rounded-full border border-slate-200"><button onclick="changeLine('${l.key}',-1)" class="w-10 h-10 flex items-center justify-center" aria-label="빼기"><i data-lucide="minus" class="w-4 h-4"></i></button><span class="w-5 text-center font-bold tnum">${l.qty}</span><button onclick="changeLine('${l.key}',1)" class="w-10 h-10 flex items-center justify-center" aria-label="더하기"><i data-lucide="plus" class="w-4 h-4"></i></button></div>
       </li>`; }).join('')}</ul>
       <p class="mt-5 text-[14px] font-semibold text-slate-600">결제 수단</p>
@@ -931,7 +979,6 @@ async function pay() {
   const orders = S.getOrders();
   const reserve = state.pickup === 'reserve' && p.recTime;
   const items = state.cart.map(l => { const m = menu(l.id); const unit = linePrice(l) / l.qty; return { menu_id: m.menu_id, menu_name: m.name, restaurant: m.restaurant, restaurant_name: m.restaurantName, quantity: l.qty, unit_price: unit, total_price: unit * l.qty }; });
-  const reqs = state.cart.map(l => [l.opts.sauce ? '소스 따로' : '', l.opts.rice === '곱빼기' ? '밥 곱빼기' : '', l.req].filter(Boolean).join(', ')).filter(Boolean);
   const maxCook = Math.max(...state.cart.map(l => menu(l.id).cook));
   const order = {
     order_number: S.issueOrderNumber(orders),
@@ -942,7 +989,7 @@ async function pay() {
     eta_minutes: reserve ? p.recWait : Math.max(maxCook, p.currentWait - 5 + maxCook),
     ai_reserved: !!reserve, ai_saved_minutes: reserve ? Math.max(0, p.currentWait - p.recWait) : 0,
     via_ai: state.cart.some(l => l.fromAI),
-    request: reqs.join(' / '), pos_ingested: true
+    pos_ingested: true
   };
   orders.push(order);
   S.saveOrders(orders);

@@ -25,7 +25,7 @@
     aiStats: 'smartorder.aistats',
     session: 'smartorder.session'
   };
-  var DATA_VERSION = '6';
+  var DATA_VERSION = '7';
   var FIRST_ORDER_NUMBER = 102;
   var DEMO_START = '12:20';
 
@@ -270,7 +270,7 @@
         order_number: no, items: items, total_price: items.reduce(function (s, i) { return s + i.total_price; }, 0),
         order_status: status, order_time: orderTime, channel: channel,
         payment_method: channel === '모바일' ? (no % 2 ? '토스페이' : '카카오페이') : (no % 2 ? '신용·체크카드' : '학생증'),
-        pickup_type: 'NOW', request: '', pos_ingested: true
+        pickup_type: 'NOW', pos_ingested: true
       };
       var cook = Math.max.apply(null, items.map(function (i) { var m = DEFAULT_MENUS.find(function (x) { return x.name === i.menu_name; }); return m.cook; }));
       if (status !== 'WAITING' && status !== 'CANCELED') { o.cook_started_at = orderTime + 2 * MIN; }
@@ -295,9 +295,9 @@
       mk(95, '모바일', [I(RAM)], 'PICKED_UP', 22, { pickup_type: 'RESERVED', pickup_time: '12:05', ai_reserved: true, ai_saved_minutes: 5 }),
       mk(96, '모바일', [I(DON)], 'READY', 17, { cook_started_at: now - 13 * MIN, ready_at: now - 3 * MIN }),
       mk(97, '키오스크', [I(DON), I(RAM)], 'READY', 15, { cook_started_at: now - 11 * MIN, ready_at: now - 1 * MIN }),
-      mk(98, '모바일', [I(BIB)], 'COOKING', 11, { cook_started_at: now - 4 * MIN, request: '밥은 조금만 주세요' }),
-      mk(99, '키오스크', [I(PHO)], 'COOKING', 9, { cook_started_at: now - 2 * MIN, request: '고추는 빼 주세요' }),
-      mk(100, '모바일', [I(GYU)], 'WAITING', 4, { request: '수저 하나 더 챙겨 주세요', pickup_type: 'RESERVED', pickup_time: '13:00', ai_reserved: true, ai_saved_minutes: 6 }),
+      mk(98, '모바일', [I(BIB)], 'COOKING', 11, { cook_started_at: now - 4 * MIN }),
+      mk(99, '키오스크', [I(PHO)], 'COOKING', 9, { cook_started_at: now - 2 * MIN }),
+      mk(100, '모바일', [I(GYU)], 'WAITING', 4, { pickup_type: 'RESERVED', pickup_time: '13:00', ai_reserved: true, ai_saved_minutes: 6 }),
       mk(101, '키오스크', [I(KAL)], 'WAITING', 1)
     ];
   }

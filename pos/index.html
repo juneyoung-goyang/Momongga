@@ -46,12 +46,8 @@
   button:focus-visible, a:focus-visible { outline: 3px solid #5498F8; outline-offset: 2px; }
 
   /* 카드가 다음 칸으로 이동했을 때 */
-  @keyframes cardIn { from { opacity: 0; transform: translateY(-10px) scale(0.97); } to { opacity: 1; transform: none; } }
-  .card-in { animation: cardIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 
   /* 새 주문 도착 */
-  @keyframes ringPulse { 0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.45); } 100% { box-shadow: 0 0 0 14px rgba(37, 99, 235, 0); } }
-  .new-ring { animation: cardIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both, ringPulse 1.2s ease-out 0.3s 3; }
 
   /* 매출 증가 표시 */
   @keyframes deltaUp { 0% { opacity: 0; transform: translateY(8px); } 15% { opacity: 1; transform: translateY(0); } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
@@ -252,7 +248,6 @@ function liveAI() {
 }
 let AI = liveAI();
 
-const REQUESTS = ['소스 따로 부탁드려요', '밥은 조금만 주세요', '수저 하나 더 챙겨 주세요', '덜 맵게 해 주세요', '포장해 갈게요', '김치 빼 주세요'];
 
 const SUB_TABS = [
   { id: 'live',    label: '실시간 주문',   icon: 'layout-grid' },
@@ -372,7 +367,6 @@ function makeOrder(no, channel, items, status, ago, extra) {
     channel: channel,
     payment_method: channel === '모바일' ? pick(['토스페이', '카카오페이']) : pick(['신용·체크카드', '학생증']),
     pickup_type: 'NOW',
-    request: '',
     pos_ingested: true
   };
   if (status !== 'WAITING' && status !== 'CANCELED') { o.cook_started_at = orderTime + 2 * MIN; }
@@ -399,9 +393,9 @@ function buildSeed() {
     makeOrder(95,  '모바일',   [item(RAM, 1)], 'PICKED_UP', 22),
     makeOrder(96,  '모바일',   [item(DON, 1)], 'READY', 17, { cook_started_at: now - 13 * MIN, ready_at: now - 3 * MIN }),
     makeOrder(97,  '키오스크', [item(DON, 1), item(RAM, 1)], 'READY', 15, { cook_started_at: now - 11 * MIN, ready_at: now - 1 * MIN }),
-    makeOrder(98,  '모바일',   [item(BIB, 1)], 'COOKING', 11, { cook_started_at: now - 4 * MIN, request: '밥은 조금만 주세요' }),
-    makeOrder(99,  '키오스크', [item(PHO, 1)], 'COOKING', 9, { cook_started_at: now - 2 * MIN, request: '고추는 빼 주세요' }),
-    makeOrder(100, '모바일',   [item(GYU, 1)], 'WAITING', 4, { request: '수저 하나 더 챙겨 주세요', pickup_type: 'RESERVED', pickup_time: '12:40' }),
+    makeOrder(98,  '모바일',   [item(BIB, 1)], 'COOKING', 11, { cook_started_at: now - 4 * MIN }),
+    makeOrder(99,  '키오스크', [item(PHO, 1)], 'COOKING', 9, { cook_started_at: now - 2 * MIN }),
+    makeOrder(100, '모바일',   [item(GYU, 1)], 'WAITING', 4, { pickup_type: 'RESERVED', pickup_time: '12:40' }),
     makeOrder(101, '키오스크', [item(KAL, 1)], 'WAITING', 1)
   ];
 }
@@ -425,7 +419,6 @@ function normalize(o) {
   if (!o.pos_ingested) {
     o.order_time = demoNow();          // 키오스크 실제 시각을 데모 시계 기준으로 맞춤
     o.pos_ingested = true;
-    o.request = o.request || '';
     o.channel = o.channel || '키오스크';
     changed = true;
   }
@@ -579,7 +572,6 @@ function makeSampleOrder(atTime) {
     channel: channel,
     payment_method: channel === '모바일' ? pick(['토스페이', '카카오페이']) : pick(['신용·체크카드', '학생증']),
     pickup_type: 'NOW',
-    request: Math.random() < 0.35 ? pick(REQUESTS) : '',
     pos_ingested: true
   };
 }
@@ -800,15 +792,7 @@ function itemsList(o) {
   }).join('') + '</ul>';
 }
 
-function requestBubble(o) {
-  if (!o.request) { return ''; }
-  return '<div class="mt-3 flex items-start gap-2 rounded-2xl rounded-tl-md bg-amber-50 border border-amber-100 px-3 py-2.5 text-[14px] text-amber-900">' +
-    '<i data-lucide="message-square-text" class="w-4 h-4 mt-0.5 shrink-0 text-amber-500"></i><span>“' + escapeHTML(o.request) + '”</span></div>';
-}
-
 function orderCard(o) {
-  const motion = state.motion[o.order_number];
-  const anim = motion === 'new' ? ' new-ring' : motion === 'move' ? ' card-in' : '';
   const reserved = o.pickup_type === 'RESERVED'
     ? '<span class="inline-flex items-center gap-1 h-6 px-2 rounded-full text-[12px] font-semibold bg-blue-700 text-white"><i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i>' + (o.pickup_time || '') + ' 예약</span>'
     : '';
@@ -837,7 +821,7 @@ function orderCard(o) {
     '</div>';
   }
 
-  return '<article class="rounded-2xl bg-white border border-slate-100 shadow-sm p-4' + anim + '">' +
+  return '<article class="order-tile aspect-square flex flex-col rounded-2xl bg-white border border-slate-100 shadow-sm p-4">' +
     '<div class="flex items-start justify-between gap-2">' +
       '<div class="min-w-0">' +
         '<div class="flex items-center gap-2 flex-wrap"><h4 class="text-[22px] font-bold tight leading-none tnum">' + orderNo(o.order_number) + '</h4>' + channelBadge(o.channel) + reserved + '</div>' +
@@ -845,7 +829,7 @@ function orderCard(o) {
       '</div>' +
       '<p class="text-[14px] font-bold tnum text-slate-700 shrink-0">' + won(o.total_price) + '</p>' +
     '</div>' +
-    itemsList(o) + requestBubble(o) + middle + actions +
+    '<div class="flex-1 min-h-0 overflow-y-auto">' + itemsList(o) + '</div>' + middle + actions +
   '</article>';
 }
 
@@ -878,13 +862,13 @@ function restaurantChips() {
 
 function renderLive() {
   const cols = [
-    { status: 'WAITING', title: '주문 접수', dot: 'bg-amber-400', hint: '확인 후 조리를 시작하세요' },
-    { status: 'COOKING', title: '조리 중',   dot: 'bg-slate-500',  hint: '완료되면 픽업 알림을 보내요' },
-    { status: 'READY',   title: '준비 완료', dot: 'bg-blue-500', hint: '수령하면 처리해 주세요' }
+    { status: 'WAITING', title: '주문 접수', dot: 'bg-amber-500', bg: 'bg-blue-50', hint: '확인 후 조리를 시작하세요' },
+    { status: 'COOKING', title: '조리 중',   dot: 'bg-orange-500',  bg: 'bg-orange-50', hint: '완료되면 픽업 알림을 보내요' },
+    { status: 'READY',   title: '준비 완료', dot: 'bg-emerald-500', bg: 'bg-emerald-50', hint: '수령하면 처리해 주세요' }
   ];
   return restaurantChips() + '<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">' + cols.map(function (c) {
     const list = byStatus(c.status).filter(function (o) { return state.restaurant === 'all' || orderHasRestaurant(o, state.restaurant); });
-    return '<section class="rounded-3xl bg-slate-100/80 border border-slate-100 p-3">' +
+    return '<section class="rounded-3xl ' + c.bg + ' p-3">' +
       '<header class="px-2 pt-1 pb-3 flex items-center gap-2">' +
         '<span class="w-2.5 h-2.5 rounded-full ' + c.dot + '"></span>' +
         '<h3 class="text-[16px] font-bold">' + c.title + ' <span class="text-slate-400 font-semibold tnum">(' + list.length + '건)</span></h3>' +
@@ -1003,10 +987,9 @@ function renderSalesView() {
       '<div class="mt-6 h-48 flex items-end gap-2">' + hourly + '</div>' +
     '</article>' +
 
-    '<article class="relative overflow-hidden rounded-3xl bg-blue-900 text-white shadow-lg shadow-blue-900/20 p-6">' +
-      '<div class="pointer-events-none absolute -top-14 -right-10 w-48 h-48 rounded-full bg-white/10 blur-2xl"></div>' +
-      '<div class="relative flex items-center gap-2"><span class="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center"><i data-lucide="sparkles" class="w-4 h-4"></i></span><h3 class="text-[16px] font-bold">AI 실시간 대기 분산</h3></div>' +
-      '<div class="relative mt-4 grid grid-cols-3 rounded-2xl bg-white/10 ring-1 ring-white/15 divide-x divide-white/15 text-center">' +
+    '<article class="relative overflow-hidden rounded-3xl bg-blue-900 text-white p-6">' +
+      '<div class="relative flex items-center gap-2"><h3 class="text-[16px] font-bold">실시간 대기 현황</h3></div>' +
+      '<div class="relative mt-4 grid grid-cols-3 rounded-2xl bg-white/10 divide-x divide-white/15 text-center">' +
         '<div class="p-3"><p class="text-[11px] text-blue-100">현재 대기</p><p class="mt-1 text-[20px] font-bold tnum">' + AI.currentWait + '분</p></div>' +
         '<div class="p-3"><p class="text-[11px] text-blue-100">혼잡도</p><p class="mt-1 text-[20px] font-bold">' + AI.level + ' <span class="text-[13px]">' + AI.levelEmoji + '</span></p></div>' +
         '<div class="p-3"><p class="text-[11px] text-blue-100">AI 추천</p><p class="mt-1 text-[15px] font-bold leading-tight">' + AI.recTime + '<br><span class="text-emerald-300 text-[12px]">대기 ' + AI.recWait + '분 ' + AI.recEmoji + '</span></p></div>' +
@@ -1053,7 +1036,7 @@ function renderHistoryView() {
     return '<tr class="border-t border-slate-100 ' + (done ? '' : 'text-slate-400') + '">' +
       '<td class="px-6 py-3.5 font-bold tnum whitespace-nowrap">' + orderNo(o.order_number) + '</td>' +
       '<td class="px-3 py-3.5 whitespace-nowrap">' + channelBadge(o.channel) + '</td>' +
-      '<td class="px-3 py-3.5 min-w-[200px]">' + o.items.map(function (i) { return i.menu_name + ' ' + i.quantity + '개'; }).join(', ') + (o.request ? '<p class="text-[12px] text-amber-600 mt-0.5">“' + escapeHTML(o.request) + '”</p>' : '') + '</td>' +
+      '<td class="px-3 py-3.5 min-w-[200px]">' + o.items.map(function (i) { return i.menu_name + ' ' + i.quantity + '개'; }).join(', ') + '</td>' +
       '<td class="px-3 py-3.5 text-right font-semibold tnum whitespace-nowrap ' + (done ? '' : 'line-through') + '">' + won(o.total_price) + '</td>' +
       '<td class="px-3 py-3.5 tnum whitespace-nowrap">' + hhmm(o.order_time) + '</td>' +
       '<td class="px-3 py-3.5 tnum whitespace-nowrap">' + lead + '</td>' +
