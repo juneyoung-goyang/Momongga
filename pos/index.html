@@ -19,22 +19,38 @@
         colors: {
           blue:   { 50: '#E8F3FF', 100: '#C9E2FF', 200: '#90C2FF', 300: '#64A8FF', 400: '#5498F8', 500: '#3182F6', 600: '#2272EB', 700: '#1B64DA', 800: '#1957C2', 900: '#194AA6' },
           indigo: { 50: '#E8F3FF', 100: '#C9E2FF', 500: '#2272EB', 600: '#1B64DA', 700: '#1957C2', 900: '#194AA6' },
-          slate:  { 50: '#F9FAFB', 100: '#F2F4F6', 200: '#E5E8EB', 300: '#D1D6DB', 400: '#B0B8C1', 500: '#6B7684', 600: '#4E5968', 700: '#333D4B', 800: '#333D4B', 900: '#191F28' }
+          slate:  { 50: '#F9FAFB', 100: '#F2F4F6', 200: '#E5E8EB', 300: '#D1D6DB', 400: '#B0B8C1', 500: '#6B7684', 600: '#4E5968', 700: '#333D4B', 800: '#333D4B', 900: '#191F28' },
+          rose:   { 50: '#FDECEE', 500: '#F04452', 600: '#F04452' },
+          bg: '#FFFFFF', subtle: '#F4F5F7', line: '#EEF0F2',
+          ink: '#191F28', sub: '#6B7684', weak: '#A0A7B0',
+          accent: { DEFAULT: '#3182F6', press: '#1B64DA', soft: '#E8F3FF' },
+          ok: '#03B26C', warn: '#FE9800', bad: '#F04452',
+          stage: { wait: '#E8F3FF', cook: '#FFF4E6', ready: '#E6F7EE' }
         },
+        borderRadius: { row: '14px', card: '20px', sheet: '28px' },
         fontFamily: {
-          sans: ['-apple-system', 'BlinkMacSystemFont', '"Apple SD Gothic Neo"', '"Malgun Gothic"', '"Segoe UI"', 'Roboto', '"Noto Sans KR"', 'system-ui', 'sans-serif']
+          sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', '"Apple SD Gothic Neo"', '"Malgun Gothic"', '"Segoe UI"', 'Roboto', '"Noto Sans KR"', 'system-ui', 'sans-serif']
         },
         boxShadow: {
-          float: '0 24px 48px -16px rgba(15, 23, 42, 0.45)'
+          float: '0 6px 20px rgba(25,31,40,.08)', card: '0 6px 20px rgba(25,31,40,.08)'
         }
       }
     }
   };
 </script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
+  :root {
+    --bg: #FFFFFF; --subtle: #F4F5F7; --line: #EEF0F2;
+    --ink: #191F28; --sub: #6B7684; --weak: #A0A7B0;
+    --accent: #3182F6; --accent-press: #1B64DA; --accent-soft: #E8F3FF;
+    --ok: #03B26C; --warn: #FE9800; --bad: #F04452;
+    --shadow: 0 6px 20px rgba(25,31,40,.08);
+    --ease: cubic-bezier(.2,.8,.2,1);
+  }
   html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", Roboto, "Noto Sans KR", system-ui, sans-serif;
+    font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", Roboto, "Noto Sans KR", system-ui, sans-serif;
     letter-spacing: -0.012em;
     line-height: 1.6;
     word-break: keep-all;
@@ -44,6 +60,14 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { scrollbar-width: none; }
   button:focus-visible, a:focus-visible { outline: 3px solid #5498F8; outline-offset: 2px; }
+  .lucide { stroke-width: 1.75; }
+  button { transition: transform 200ms var(--ease), background-color 200ms var(--ease), color 200ms var(--ease); }
+  button:not(:disabled):active { transform: scale(.97); }
+  /* 새 주문 타일은 한 번만 200ms 동안 나타나요 (깜빡임·발광 없음) */
+  @keyframes tileIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .tile-in { animation: tileIn 200ms var(--ease) both; }
+  .rail-btn[aria-selected="true"] .rail-mark { opacity: 1; }
+  .rail-mark { opacity: 0; }
 
   /* 카드가 다음 칸으로 이동했을 때 */
 
@@ -54,12 +78,12 @@
   .delta { animation: deltaUp 1.9s ease-out forwards; }
 
   @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-  .bar-grow { transform-origin: bottom; animation: grow 0.6s cubic-bezier(0.32, 0.72, 0, 1) both; }
+  .bar-grow { transform-origin: bottom; animation: grow 280ms var(--ease) both; }
 
-  .switch-knob { transition: left 0.22s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .switch-knob { transition: left 220ms var(--ease); }
   .progress-fill { transition: width 0.8s linear, background-color 0.3s ease; }
 
-  .board { opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+  .board { opacity: 0; pointer-events: none; transition: opacity 240ms var(--ease); }
   .board.open { opacity: 1; pointer-events: auto; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -67,115 +91,85 @@
   }
 </style>
 </head>
-<body class="bg-slate-50 text-slate-900 antialiased">
+<body class="bg-white text-ink antialiased">
 
-<!-- 글로벌 헤더 -->
-<header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-100">
-  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 h-[72px] flex items-center gap-4">
-    <div class="flex items-center gap-3 shrink-0">
-      <span class="w-10 h-10 rounded-2xl bg-blue-500 text-white flex items-center justify-center shadow-md shadow-indigo-600/25">
-        <i data-lucide="utensils-crossed" class="w-5 h-5"></i>
-      </span>
-      <div class="leading-tight">
-        <p class="text-[17px] font-bold tight">MJC Table</p>
-        <p class="text-[12px] text-slate-500">직원용 주문 관리</p>
-      </div>
+<!-- 왼쪽 내비게이션 레일 -->
+<aside class="z-40 bg-subtle md:fixed md:inset-y-0 md:left-0 md:w-[92px] flex md:flex-col items-center gap-2 px-2 py-2 md:py-4 overflow-x-auto no-scrollbar">
+  <span class="hidden md:flex w-11 h-11 rounded-row bg-ink text-white items-center justify-center shrink-0" aria-hidden="true"><i data-lucide="utensils-crossed" class="w-5 h-5"></i></span>
+  <nav id="subTabs" class="flex md:flex-col gap-1 md:w-full md:mt-4" role="tablist" aria-label="POS 화면"></nav>
+  <button id="soundBtn" onclick="toggleSound()" class="md:mt-auto shrink-0 w-11 h-11 rounded-full hover:bg-white flex items-center justify-center" aria-label="알림음 끄기">
+    <i data-lucide="volume-2" class="w-5 h-5 text-slate-600"></i>
+  </button>
+</aside>
+
+<div class="md:pl-[92px]">
+<!-- 상단 바 -->
+<header class="sticky top-0 z-30 bg-white border-b border-line">
+  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 h-16 flex items-center gap-4">
+    <div class="leading-tight shrink-0">
+      <p class="text-[18px] font-extrabold tight">MJC Table 학생식당</p>
+      <p class="text-[12px] font-medium text-sub">직원용 주문 관리</p>
     </div>
-
-    <nav id="globalTabs" class="hidden lg:flex mx-auto p-1 rounded-2xl bg-slate-100 gap-1" aria-label="화면 전환"></nav>
-
-    <div class="ml-auto lg:ml-0 flex items-center gap-2">
-      <span id="syncBadge" class="hidden md:inline-flex items-center gap-2 h-10 px-3.5 rounded-full bg-emerald-50 text-emerald-700 text-[13px] font-semibold">
-        <span class="relative flex h-2 w-2">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-        </span>
+    <div id="dateLabel" class="hidden md:flex items-center gap-2 text-[13px] font-medium text-sub"></div>
+    <div class="ml-auto flex items-center gap-2">
+      <nav id="globalTabs" class="hidden xl:flex gap-1" aria-label="화면 전환"></nav>
+      <span id="syncBadge" class="hidden md:inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-subtle text-sub text-[12px] font-semibold whitespace-nowrap">
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-ok"></span>
         <span id="syncText">실시간 동기화 중</span>
       </span>
-      <button id="soundBtn" onclick="toggleSound()" class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center" aria-label="알림음 끄기">
-        <i data-lucide="volume-2" class="w-5 h-5 text-slate-600"></i>
-      </button>
-      <button onclick="setView('history')" class="h-10 px-4 rounded-xl bg-white border border-slate-200 text-[14px] font-semibold flex items-center gap-1.5 hover:border-slate-300 shadow-sm">
-        <i data-lucide="history" class="w-4 h-4 text-slate-500"></i>주문 내역
-      </button>
+      <span class="h-10 px-3.5 rounded-full bg-ink text-white flex items-center gap-1.5 shrink-0" title="데모 시계">
+        <i data-lucide="clock" class="w-4 h-4 text-white/70"></i><span id="demoClock" class="text-[16px] font-bold tnum">12:20:00</span>
+      </span>
     </div>
   </div>
-  <div class="lg:hidden px-4 sm:px-6 pb-3 overflow-x-auto no-scrollbar">
-    <nav id="globalTabsMobile" class="inline-flex p-1 rounded-2xl bg-slate-100 gap-1" aria-label="화면 전환"></nav>
+  <div class="xl:hidden px-4 sm:px-6 pb-2.5 overflow-x-auto no-scrollbar">
+    <nav id="globalTabsMobile" class="inline-flex gap-1" aria-label="화면 전환"></nav>
   </div>
 </header>
 
-<main class="max-w-[1440px] mx-auto px-4 sm:px-6 pt-6 pb-36">
+<main class="max-w-[1440px] mx-auto px-4 sm:px-6 pt-4 pb-36">
 
-  <!-- 4대 핵심 지표 -->
-  <section class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-    <article class="rounded-3xl bg-white border border-slate-100 shadow-sm p-5">
-      <div class="flex items-center gap-2.5">
-        <span class="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center"><i data-lucide="receipt" class="w-[18px] h-[18px]"></i></span>
-        <p class="text-[14px] font-semibold text-slate-500">오늘 총 주문</p>
-      </div>
-      <p class="mt-4 font-bold tight leading-none"><span id="kpiTotal" class="text-[34px] tnum">0</span><span class="text-[17px] ml-1 text-slate-500">건</span></p>
-      <p id="kpiTotalSub" class="mt-2.5 text-[13px] text-slate-500">모바일 0 · 키오스크 0</p>
+  <!-- 핵심 지표 (작은 칩) -->
+  <section class="flex flex-wrap items-stretch gap-2" aria-label="오늘 지표">
+    <article class="h-[60px] rounded-row bg-subtle px-4 flex flex-col justify-center min-w-[150px]">
+      <p class="text-[12px] font-semibold text-sub flex items-center gap-1"><i data-lucide="receipt" class="w-3.5 h-3.5"></i>오늘 주문</p>
+      <p class="flex items-baseline gap-2 leading-tight"><span class="font-extrabold"><span id="kpiTotal" class="text-[20px] tnum">0</span><span class="text-[13px] ml-0.5">건</span></span><span id="kpiTotalSub" class="text-[11px] font-medium text-sub truncate">모바일 0 · 키오스크 0</span></p>
     </article>
-
-    <article class="relative overflow-hidden rounded-3xl bg-blue-700 text-white shadow-lg shadow-blue-700/20 p-5">
-      <div class="pointer-events-none absolute -top-12 -right-8 w-40 h-40 rounded-full bg-white/10 blur-2xl"></div>
-      <div class="relative flex items-center gap-2.5">
-        <span class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center"><i data-lucide="wallet" class="w-[18px] h-[18px]"></i></span>
-        <p class="text-[14px] font-semibold text-white/90">모의 매출</p>
-        <span id="kpiDelta" class="ml-auto"></span>
-      </div>
-      <p class="relative mt-4 font-bold tight leading-none"><span id="kpiRevenue" class="text-[34px] tnum">0</span><span class="text-[17px] ml-1 text-white/90">원</span></p>
-      <p id="kpiRevenueSub" class="relative mt-2.5 text-[13px] text-white/90">취소 주문 제외</p>
+    <article class="h-[60px] rounded-row bg-subtle px-4 flex flex-col justify-center min-w-[150px]">
+      <p class="text-[12px] font-semibold text-sub flex items-center gap-1"><i data-lucide="flame" class="w-3.5 h-3.5"></i>조리 대기</p>
+      <p class="flex items-baseline gap-2 leading-tight"><span class="font-extrabold"><span id="kpiQueue" class="text-[20px] tnum">0</span><span class="text-[13px] ml-0.5">건</span></span><span id="kpiQueueSub" class="text-[11px] font-medium text-sub truncate">접수 0 · 조리 중 0</span></p>
     </article>
-
-    <article class="rounded-3xl bg-white border border-slate-100 shadow-sm p-5">
-      <div class="flex items-center gap-2.5">
-        <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center"><i data-lucide="flame" class="w-[18px] h-[18px]"></i></span>
-        <p class="text-[14px] font-semibold text-slate-500">현재 조리 대기</p>
-      </div>
-      <p class="mt-4 font-bold tight leading-none"><span id="kpiQueue" class="text-[34px] tnum">0</span><span class="text-[17px] ml-1 text-slate-500">건</span></p>
-      <p id="kpiQueueSub" class="mt-2.5 text-[13px] text-slate-500">접수 0 · 조리 중 0</p>
+    <article id="kpiReadyCard" class="h-[60px] rounded-row bg-subtle px-4 flex flex-col justify-center min-w-[150px]">
+      <p class="text-[12px] font-semibold text-sub flex items-center gap-1"><i data-lucide="package-check" class="w-3.5 h-3.5"></i>수령 대기</p>
+      <p class="flex items-baseline gap-2 leading-tight"><span class="font-extrabold"><span id="kpiReady" class="text-[20px] tnum">0</span><span class="text-[13px] ml-0.5">건</span></span><span id="kpiReadySub" class="text-[11px] font-medium text-sub truncate">준비 완료된 주문을 안내하세요</span></p>
     </article>
-
-    <article id="kpiReadyCard" class="rounded-3xl bg-white border border-slate-100 shadow-sm p-5 transition">
-      <div class="flex items-center gap-2.5">
-        <span class="w-9 h-9 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center"><i data-lucide="package-check" class="w-[18px] h-[18px]"></i></span>
-        <p class="text-[14px] font-semibold text-slate-500">수령 대기</p>
-      </div>
-      <p class="mt-4 font-bold tight leading-none"><span id="kpiReady" class="text-[34px] tnum">0</span><span class="text-[17px] ml-1 text-slate-500">건</span></p>
-      <p id="kpiReadySub" class="mt-2.5 text-[13px] text-slate-500">준비 완료된 주문을 안내하세요</p>
+    <article class="h-[60px] rounded-row bg-subtle px-4 flex flex-col justify-center min-w-[170px]">
+      <p class="text-[12px] font-semibold text-sub flex items-center gap-1"><i data-lucide="wallet" class="w-3.5 h-3.5"></i>모의 매출 <span id="kpiDelta" class="ml-1"></span></p>
+      <p class="flex items-baseline gap-2 leading-tight"><span class="font-extrabold"><span id="kpiRevenue" class="text-[20px] tnum">0</span><span class="text-[13px] ml-0.5">원</span></span><span id="kpiRevenueSub" class="text-[11px] font-medium text-sub truncate">취소 주문 제외</span></p>
     </article>
+    <button onclick="setView('history')" class="ml-auto h-10 self-center px-4 rounded-full bg-subtle text-[13px] font-semibold text-sub flex items-center gap-1.5 hover:text-ink">
+      <i data-lucide="history" class="w-4 h-4"></i>주문 내역
+    </button>
   </section>
-
-  <!-- 서브 탭 -->
-  <div class="mt-8 flex flex-wrap items-center gap-3">
-    <div class="overflow-x-auto no-scrollbar max-w-full">
-      <div id="subTabs" class="inline-flex gap-1 p-1 rounded-2xl bg-white border border-slate-100 shadow-sm" role="tablist"></div>
-    </div>
-    <p id="dateLabel" class="ml-auto text-[14px] font-medium text-slate-500 flex items-center gap-1.5"></p>
-  </div>
 
   <section id="view" class="mt-5"></section>
 </main>
+</div>
 
 <!-- 하단 데모 체험 도구 -->
-<div class="fixed inset-x-0 bottom-0 z-40 pointer-events-none" style="padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));">
+<div class="fixed inset-x-0 bottom-0 z-40 pointer-events-none md:pl-[92px]" style="padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));">
   <div class="max-w-[1440px] mx-auto px-4 sm:px-6">
-    <div class="pointer-events-auto rounded-3xl bg-slate-900 text-white shadow-float p-2 pl-4 sm:pl-5 flex flex-wrap items-center gap-2 sm:gap-3">
-      <span class="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0"><i data-lucide="flask-conical" class="w-[18px] h-[18px] text-blue-300"></i></span>
-      <div class="leading-tight mr-1">
-        <p class="text-[12px] text-slate-400">데모 체험 도구</p>
-        <p class="text-[15px] font-semibold">데모 시간 <span id="demoClock" class="tnum text-blue-300">12:20:00</span></p>
-      </div>
+    <div class="pointer-events-auto rounded-card bg-white border border-line shadow-card p-2 pl-4 flex flex-wrap items-center gap-2 sm:gap-3">
+      <span class="w-9 h-9 rounded-row bg-subtle flex items-center justify-center shrink-0"><i data-lucide="flask-conical" class="w-[18px] h-[18px] text-sub"></i></span>
+      <p class="text-[14px] font-bold mr-1">데모 체험 도구</p>
       <div class="ml-auto flex flex-wrap items-center gap-2">
-        <button onclick="fastForward()" class="h-12 px-4 rounded-2xl bg-white/10 hover:bg-white/15 text-[14px] font-semibold flex items-center gap-1.5 active:scale-[0.97] transition">
+        <button onclick="fastForward()" class="h-11 px-4 rounded-full bg-subtle hover:bg-line text-[14px] font-semibold flex items-center gap-1.5 active:scale-[0.97] transition">
           <i data-lucide="fast-forward" class="w-4 h-4"></i>15분 경과
         </button>
-        <button onclick="addSampleOrder()" class="h-12 px-5 rounded-2xl bg-blue-700 hover:bg-blue-800 text-[14px] font-bold flex items-center gap-1.5 active:scale-[0.97] transition">
+        <button onclick="addSampleOrder()" class="h-11 px-5 rounded-full bg-accent hover:bg-accent-press text-white text-[14px] font-bold flex items-center gap-1.5 active:scale-[0.97] transition">
           <i data-lucide="plus" class="w-4 h-4"></i>샘플 주문 추가
         </button>
-        <button onclick="resetDemo()" class="h-12 px-4 rounded-2xl bg-white/10 hover:bg-white/15 text-[14px] font-semibold flex items-center gap-1.5 active:scale-[0.97] transition">
+        <button onclick="resetDemo()" class="h-11 px-4 rounded-full bg-subtle hover:bg-line text-[14px] font-semibold flex items-center gap-1.5 active:scale-[0.97] transition">
           <i data-lucide="rotate-ccw" class="w-4 h-4"></i>초기화
         </button>
       </div>
@@ -184,23 +178,23 @@
 </div>
 
 <!-- 픽업 보드 (전체 화면) -->
-<section id="board" class="board fixed inset-0 z-[60] bg-slate-900 text-white flex flex-col" role="dialog" aria-modal="true" aria-labelledby="boardTitle">
-  <header class="px-6 sm:px-10 h-20 flex items-center gap-4 border-b border-white/10">
-    <span class="w-10 h-10 rounded-2xl bg-blue-500 flex items-center justify-center"><i data-lucide="utensils-crossed" class="w-5 h-5"></i></span>
+<section id="board" class="board fixed inset-0 z-[60] bg-white text-ink flex flex-col" role="dialog" aria-modal="true" aria-labelledby="boardTitle">
+  <header class="px-6 sm:px-10 h-20 flex items-center gap-4 border-b border-line">
+    <span class="w-11 h-11 rounded-row bg-ink text-white flex items-center justify-center"><i data-lucide="utensils-crossed" class="w-5 h-5"></i></span>
     <div class="leading-tight">
-      <h2 id="boardTitle" class="text-[20px] font-bold">MJC Table 픽업 보드</h2>
-      <p class="text-[13px] text-slate-400">번호가 초록색으로 바뀌면 수령해 주세요</p>
+      <h2 id="boardTitle" class="text-[22px] font-extrabold">MJC Table 픽업 보드</h2>
+      <p class="text-[14px] font-medium text-sub">번호가 초록색으로 바뀌면 수령해 주세요</p>
     </div>
-    <span id="boardClock" class="ml-auto text-[26px] font-bold tnum">12:20</span>
-    <button onclick="closeBoard()" class="ml-2 h-11 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-[14px] font-semibold flex items-center gap-1.5"><i data-lucide="x" class="w-4 h-4"></i>POS로 돌아가기</button>
+    <span id="boardClock" class="ml-auto text-[32px] font-extrabold tnum">12:20</span>
+    <button onclick="closeBoard()" class="ml-2 h-11 px-4 rounded-full bg-subtle hover:bg-line text-[14px] font-semibold flex items-center gap-1.5"><i data-lucide="x" class="w-4 h-4"></i>POS로 돌아가기</button>
   </header>
-  <div id="boardBody" class="flex-1 grid grid-cols-1 md:grid-cols-[2fr_3fr] gap-6 p-6 sm:p-10 overflow-y-auto"></div>
+  <div id="boardBody" class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 sm:p-10 overflow-y-auto"></div>
 </section>
 
 <!-- 토스트 -->
-<div id="toast" class="fixed left-1/2 top-5 z-[70] -translate-x-1/2 transition-all duration-300 opacity-0 -translate-y-3 pointer-events-none">
-  <div class="bg-slate-900/95 backdrop-blur text-white rounded-full pl-4 pr-5 py-3 shadow-xl text-[14px] font-semibold flex items-center gap-2 max-w-[92vw]">
-    <span class="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shrink-0"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+<div id="toast" class="fixed left-1/2 top-5 z-[70] -translate-x-1/2 transition-all duration-[240ms] opacity-0 -translate-y-3 pointer-events-none">
+  <div class="bg-ink text-white rounded-full pl-4 pr-5 py-3 shadow-card text-[14px] font-semibold flex items-center gap-2 max-w-[92vw]">
+    <span class="w-5 h-5 rounded-full bg-accent flex items-center justify-center shrink-0"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
     <span id="toastText" class="truncate"></span>
   </div>
 </div>
@@ -684,14 +678,14 @@ function renderGlobalTabs() {
     { label: '픽업 보드', icon: 'tv',        action: 'openBoard()' }
   ];
   const html = tabs.map(function (t) {
-    const base = 'h-10 px-4 rounded-xl text-[14px] font-semibold flex items-center gap-1.5 whitespace-nowrap transition ';
+    const base = 'h-9 px-3.5 rounded-full text-[13px] font-semibold flex items-center gap-1.5 whitespace-nowrap transition ';
     if (t.active) {
-      return '<span aria-current="page" class="' + base + 'bg-white text-blue-700 shadow-sm"><i data-lucide="' + t.icon + '" class="w-4 h-4"></i>' + t.label + '</span>';
+      return '<span aria-current="page" class="' + base + 'bg-accent-soft text-accent-press"><i data-lucide="' + t.icon + '" class="w-4 h-4"></i>' + t.label + '</span>';
     }
     if (t.href) {
-      return '<a href="' + t.href + '" target="_blank" rel="noopener" class="' + base + 'text-slate-500 hover:text-slate-900"><i data-lucide="' + t.icon + '" class="w-4 h-4"></i>' + t.label + '</a>';
+      return '<a href="' + t.href + '" target="_blank" rel="noopener" class="' + base + 'text-sub hover:bg-subtle hover:text-ink"><i data-lucide="' + t.icon + '" class="w-4 h-4"></i>' + t.label + '</a>';
     }
-    return '<button onclick="' + t.action + '" class="' + base + 'text-slate-500 hover:text-slate-900"><i data-lucide="' + t.icon + '" class="w-4 h-4"></i>' + t.label + '</button>';
+    return '<button onclick="' + t.action + '" class="' + base + 'text-sub hover:bg-subtle hover:text-ink"><i data-lucide="' + t.icon + '" class="w-4 h-4"></i>' + t.label + '</button>';
   }).join('');
   document.getElementById('globalTabs').innerHTML = html;
   document.getElementById('globalTabsMobile').innerHTML = html;
@@ -727,13 +721,13 @@ function renderKPIs() {
   document.getElementById('kpiRevenueSub').textContent = '취소 주문 제외' + (s.canceled ? ' (취소 ' + s.canceled + '건)' : '');
   document.getElementById('kpiQueueSub').textContent = '접수 ' + s.waiting + ' · 조리 중 ' + s.cooking;
   document.getElementById('kpiReadySub').textContent = s.ready ? '준비 완료된 주문을 안내하세요' : '안내할 주문이 없어요';
-  document.getElementById('kpiReadyCard').className = 'rounded-3xl bg-white border shadow-sm p-5 transition ' +
-    (s.ready ? 'border-blue-200 ring-2 ring-blue-100' : 'border-slate-100');
+  document.getElementById('kpiReadyCard').className = 'h-[60px] rounded-row px-4 flex flex-col justify-center min-w-[150px] transition-colors ' +
+    (s.ready ? 'bg-stage-ready' : 'bg-subtle');
 
   if (state.prevRevenue !== null && s.revenue !== state.prevRevenue) {
     const diff = s.revenue - state.prevRevenue;
-    document.getElementById('kpiDelta').innerHTML = '<span class="delta inline-block text-[12px] font-bold px-2 py-0.5 rounded-full ' +
-      (diff > 0 ? 'bg-white text-indigo-700' : 'bg-white/20 text-white') + '">' + (diff > 0 ? '+' : '-') + won(Math.abs(diff)) + '</span>';
+    document.getElementById('kpiDelta').innerHTML = '<span class="delta inline-block text-[11px] font-bold px-1.5 rounded-full tnum ' +
+      (diff > 0 ? 'bg-accent-soft text-accent-press' : 'bg-white text-sub') + '">' + (diff > 0 ? '+' : '-') + won(Math.abs(diff)) + '</span>';
   }
   state.prevRevenue = s.revenue;
 }
@@ -745,23 +739,32 @@ function renderSubTabs() {
   const s = stats();
   const soldOutCount = MENUS.filter(function (m) { return state.soldOut[m.menu_id] === true; }).length;
   const badges = { live: s.waiting + s.cooking + s.ready, menu: soldOutCount, sales: 0, history: s.picked + s.canceled };
+  const item = function (on, attrs, icon, label, badge, badgeCls) {
+    return '<button ' + attrs + ' class="rail-btn relative shrink-0 md:w-full min-w-[76px] h-[64px] rounded-row flex flex-col items-center justify-center gap-1 px-1 transition-colors ' +
+      (on ? 'bg-white text-ink' : 'text-sub hover:text-ink hover:bg-white/60') + '">' +
+      '<span class="rail-mark absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-accent max-md:hidden"></span>' +
+      '<i data-lucide="' + icon + '" class="w-[22px] h-[22px] ' + (on ? 'text-accent' : '') + '"></i>' +
+      '<span class="text-[11px] leading-tight text-center ' + (on ? 'font-bold' : 'font-medium') + '">' + label + '</span>' +
+      (badge ? '<span class="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center tnum ' + badgeCls + '">' + badge + '</span>' : '') +
+      '</button>';
+  };
   document.getElementById('subTabs').innerHTML = SUB_TABS.map(function (t) {
     const on = state.view === t.id;
-    const badge = badges[t.id]
-      ? '<span class="min-w-[22px] h-[22px] px-1.5 rounded-full text-[12px] font-bold flex items-center justify-center ' +
-        (on ? 'bg-blue-700 text-white' : (t.id === 'menu' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-500')) + '">' + badges[t.id] + '</span>'
-      : '';
-    return '<button role="tab" aria-selected="' + on + '" onclick="setView(\'' + t.id + '\')" class="h-11 px-4 rounded-xl text-[14px] font-semibold flex items-center gap-2 whitespace-nowrap transition ' +
-      (on ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50') + '">' +
-      '<i data-lucide="' + t.icon + '" class="w-4 h-4"></i>' + t.label + badge + '</button>';
+    const html = item(on, 'role="tab" aria-selected="' + on + '" onclick="setView(\'' + t.id + '\')"', t.icon, t.label, badges[t.id],
+      t.id === 'menu' ? 'bg-bad text-white' : (on ? 'bg-accent text-white' : 'bg-white text-sub'));
+    /* 픽업 보드는 화면 전환이 아니라 전체 화면을 열어요 (openBoard) */
+    return (t.id === 'history' ? item(false, 'onclick="openBoard()"', 'tv', '픽업 보드', 0, '') : '') + html;
   }).join('');
 }
 
 function renderDate() {
   const d = new Date(demoNow());
   const days = ['일', '월', '화', '수', '목', '금', '토'];
-  document.getElementById('dateLabel').innerHTML = '<i data-lucide="calendar" class="w-4 h-4"></i>' +
-    d.getFullYear() + '년 ' + (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + days[d.getDay()] + ') 점심 영업';
+  const tone = AI.level === '혼잡' ? 'bg-bad' : AI.level === '보통' ? 'bg-warn' : 'bg-ok';
+  const txt = AI.level === '혼잡' ? 'text-bad' : AI.level === '보통' ? 'text-warn' : 'text-ok';
+  document.getElementById('dateLabel').innerHTML = '<span class="flex items-center gap-1.5 whitespace-nowrap"><i data-lucide="calendar" class="w-4 h-4"></i>' +
+    d.getFullYear() + '년 ' + (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + days[d.getDay()] + ') 점심 영업</span>' +
+    '<span class="h-8 px-3 rounded-full bg-subtle text-[12px] font-bold flex items-center gap-1.5 whitespace-nowrap ' + txt + '"><span class="w-2 h-2 rounded-full ' + tone + '"></span>혼잡도 ' + AI.level + ' · 대기 <span class="tnum">' + AI.currentWait + '분</span></span>';
 }
 
 function setView(id) {
@@ -775,61 +778,62 @@ function setView(id) {
    ===================================================================== */
 function channelBadge(channel) {
   const mobile = channel === '모바일';
-  return '<span class="inline-flex items-center gap-1 h-6 px-2 rounded-full text-[12px] font-semibold ' +
-    (mobile ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-700') + '">' +
-    '<i data-lucide="' + (mobile ? 'smartphone' : 'monitor') + '" class="w-3.5 h-3.5"></i>' + (mobile ? '모바일' : '키오스크') + '</span>';
+  return '<span class="inline-flex items-center gap-1 h-[22px] px-2 rounded-full text-[11px] font-bold whitespace-nowrap ' +
+    (mobile ? 'bg-accent-soft text-accent-press' : 'bg-subtle text-sub') + '">' +
+    '<i data-lucide="' + (mobile ? 'smartphone' : 'monitor') + '" class="w-3 h-3"></i>' + (mobile ? '모바일' : '키오스크') + '</span>';
 }
 
 function itemsList(o) {
   return '<ul class="mt-3 space-y-2">' + o.items.map(function (i) {
     const m = menuByName(i.menu_name);
     return '<li class="flex items-center gap-2.5">' +
-      '<span class="relative w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center text-[18px] shrink-0" style="background: linear-gradient(135deg, ' + (m ? m.tone[0] : '#F2F4F6') + ', ' + (m ? m.tone[1] : '#E5E8EB') + ')">' + (m ? m.emoji : '🍽️') +
+      '<span class="relative w-10 h-10 rounded-[10px] overflow-hidden flex items-center justify-center text-[18px] shrink-0" style="background: ' + (m ? m.tone[0] : '#F4F5F7') + '">' + (m ? m.emoji : '🍽️') +
         (m && m.img ? '<img src="' + m.img + '" alt="" class="absolute inset-0 w-full h-full object-cover" onerror="this.remove()">' : '') + '</span>' +
-      '<span class="flex-1 min-w-0"><span class="block text-[15px] font-semibold truncate">' + i.menu_name + '</span>' +
-        (m ? '<span class="block text-[12px] text-slate-500 truncate">' + m.restaurantName + '</span>' : '') + '</span>' +
-      '<span class="text-[15px] font-bold tnum">' + i.quantity + '개</span></li>';
+      '<span class="flex-1 min-w-0"><span class="block text-[15px] font-bold leading-tight truncate">' + i.menu_name + '</span>' +
+        (m ? '<span class="block text-[12px] font-medium text-sub truncate">' + m.restaurantName + '</span>' : '') + '</span>' +
+      '<span class="text-[16px] font-extrabold tnum">×' + i.quantity + '</span></li>';
   }).join('') + '</ul>';
 }
 
 function orderCard(o) {
   const reserved = o.pickup_type === 'RESERVED'
-    ? '<span class="inline-flex items-center gap-1 h-6 px-2 rounded-full text-[12px] font-semibold bg-blue-700 text-white"><i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i>' + (o.pickup_time || '') + ' 예약</span>'
+    ? '<span class="inline-flex items-center gap-1 h-[22px] px-2 rounded-full text-[11px] font-bold bg-ink text-white whitespace-nowrap"><i data-lucide="clock" class="w-3 h-3"></i>' + (o.pickup_time || '') + ' 예약</span>'
     : '';
+  const btn = 'h-12 rounded-row text-[15px] font-bold flex items-center justify-center gap-1.5 transition';
+  const ghost = 'w-12 h-12 shrink-0 rounded-row bg-subtle flex items-center justify-center transition';
 
   let meta;
   let middle = '';
   let actions;
   if (o.order_status === 'WAITING') {
-    meta = '<span class="tnum">' + hhmm(o.order_time) + ' 접수</span><span class="text-slate-300">·</span><span data-elapsed="' + o.order_time + '" data-warn="7" class="tnum font-semibold">방금</span>';
-    actions = '<div class="mt-4 flex gap-2">' +
-      '<button onclick="startCooking(' + o.order_number + ')" class="flex-1 h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-[15px] font-bold flex items-center justify-center gap-1.5 active:scale-[0.98] transition">접수하고 조리 시작<i data-lucide="arrow-right" class="w-4 h-4"></i></button>' +
-      '<button onclick="cancelOrder(' + o.order_number + ')" class="w-12 h-12 rounded-2xl border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200 flex items-center justify-center" aria-label="' + orderNo(o.order_number) + ' 주문 취소"><i data-lucide="trash-2" class="w-[18px] h-[18px]"></i></button>' +
+    meta = '<span class="tnum">' + hhmm(o.order_time) + ' 접수</span><span class="text-weak">·</span><span data-elapsed="' + o.order_time + '" data-warn="7" class="tnum font-bold">방금</span>';
+    actions = '<div class="mt-3 flex gap-2">' +
+      '<button onclick="startCooking(' + o.order_number + ')" class="flex-1 ' + btn + ' bg-ink hover:bg-[#333D4B] text-white">접수하고 조리 시작<i data-lucide="arrow-right" class="w-4 h-4"></i></button>' +
+      '<button onclick="cancelOrder(' + o.order_number + ')" class="' + ghost + ' text-sub hover:text-bad" aria-label="' + orderNo(o.order_number) + ' 주문 취소"><i data-lucide="trash-2" class="w-[18px] h-[18px]"></i></button>' +
     '</div>';
   } else if (o.order_status === 'COOKING') {
     const dur = expectedCookMinutes(o) * MIN;
-    meta = '<span class="tnum">' + hhmm(o.order_time) + ' 접수</span><span class="text-slate-300">·</span><span data-elapsed="' + o.order_time + '" data-warn="15" class="tnum font-semibold">방금</span>';
-    middle = '<div class="mt-4">' +
-      '<div class="h-2 rounded-full bg-slate-100 overflow-hidden"><div class="progress-fill h-full rounded-full bg-blue-500" style="width:2%" data-cook-start="' + o.cook_started_at + '" data-cook-dur="' + dur + '"></div></div>' +
+    meta = '<span class="tnum">' + hhmm(o.order_time) + ' 접수</span><span class="text-weak">·</span><span data-elapsed="' + o.order_time + '" data-warn="15" class="tnum font-bold">방금</span>';
+    middle = '<div class="mt-3">' +
+      '<div class="h-1.5 rounded-full bg-subtle overflow-hidden"><div class="progress-fill h-full rounded-full bg-accent" style="width:2%" data-cook-start="' + o.cook_started_at + '" data-cook-dur="' + dur + '"></div></div>' +
       '<p class="mt-1.5 text-[12px] text-slate-500 tnum" data-cook-label>목표 ' + expectedCookMinutes(o) + '분</p></div>';
-    actions = '<button onclick="markReady(' + o.order_number + ')" class="mt-4 w-full h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-[15px] font-bold flex items-center justify-center gap-1.5 active:scale-[0.98] transition">준비 완료·픽업 알림<i data-lucide="arrow-right" class="w-4 h-4"></i></button>';
+    actions = '<button onclick="markReady(' + o.order_number + ')" class="mt-3 w-full ' + btn + ' bg-ink hover:bg-[#333D4B] text-white">준비 완료·픽업 알림<i data-lucide="arrow-right" class="w-4 h-4"></i></button>';
   } else {
-    meta = '<span class="tnum">' + hhmm(o.ready_at || o.order_time) + ' 준비 완료</span><span class="text-slate-300">·</span><span data-elapsed="' + (o.ready_at || o.order_time) + '" data-warn="10" data-suffix="대기" class="tnum font-semibold">방금</span>';
-    actions = '<div class="mt-4 flex gap-2">' +
-      '<button onclick="markPickedUp(' + o.order_number + ')" class="flex-1 h-12 rounded-2xl bg-blue-700 hover:bg-blue-800 text-white text-[15px] font-bold flex items-center justify-center gap-1.5 active:scale-[0.98] transition">수령 완료 처리<i data-lucide="check" class="w-4 h-4"></i></button>' +
-      '<button onclick="recall(' + o.order_number + ')" class="w-12 h-12 rounded-2xl border border-slate-200 text-slate-500 hover:text-blue-700 hover:border-blue-200 flex items-center justify-center" aria-label="' + orderNo(o.order_number) + ' 다시 호출"><i data-lucide="megaphone" class="w-[18px] h-[18px]"></i></button>' +
+    meta = '<span class="tnum">' + hhmm(o.ready_at || o.order_time) + ' 준비 완료</span><span class="text-weak">·</span><span data-elapsed="' + (o.ready_at || o.order_time) + '" data-warn="10" data-suffix="대기" class="tnum font-bold">방금</span>';
+    actions = '<div class="mt-3 flex gap-2">' +
+      '<button onclick="markPickedUp(' + o.order_number + ')" class="flex-1 ' + btn + ' bg-accent hover:bg-accent-press text-white">수령 완료 처리<i data-lucide="check" class="w-4 h-4"></i></button>' +
+      '<button onclick="recall(' + o.order_number + ')" class="' + ghost + ' text-sub hover:text-accent" aria-label="' + orderNo(o.order_number) + ' 다시 호출"><i data-lucide="megaphone" class="w-[18px] h-[18px]"></i></button>' +
     '</div>';
   }
 
-  return '<article class="order-tile aspect-square flex flex-col rounded-2xl bg-white border border-slate-100 shadow-sm p-4">' +
+  return '<article class="order-tile aspect-square flex flex-col rounded-card bg-white shadow-card p-4' + (state.motion[o.order_number] === 'new' ? ' tile-in' : '') + '">' +
     '<div class="flex items-start justify-between gap-2">' +
-      '<div class="min-w-0">' +
-        '<div class="flex items-center gap-2 flex-wrap"><h4 class="text-[22px] font-bold tight leading-none tnum">' + orderNo(o.order_number) + '</h4>' + channelBadge(o.channel) + reserved + '</div>' +
-        '<p class="mt-2 text-[13px] text-slate-500 flex items-center gap-1.5">' + meta + '</p>' +
-      '</div>' +
-      '<p class="text-[14px] font-bold tnum text-slate-700 shrink-0">' + won(o.total_price) + '</p>' +
+      '<h4 class="text-[28px] font-extrabold tight leading-none tnum">' + orderNo(o.order_number) + '</h4>' +
+      '<p class="text-[14px] font-bold tnum text-sub shrink-0 pt-1">' + won(o.total_price) + '</p>' +
     '</div>' +
-    '<div class="flex-1 min-h-0 overflow-y-auto">' + itemsList(o) + '</div>' + middle + actions +
+    '<div class="mt-2 flex items-center gap-1.5 flex-wrap">' + channelBadge(o.channel) + reserved + '</div>' +
+    '<p class="mt-2 text-[12px] font-medium text-sub flex items-center gap-1.5">' + meta + '</p>' +
+    '<div class="flex-1 min-h-0 overflow-y-auto no-scrollbar">' + itemsList(o) + '</div>' + middle + actions +
   '</article>';
 }
 
@@ -839,7 +843,7 @@ function emptyColumn(status) {
     COOKING: '조리 중인 주문이 없어요. 접수 카드에서 조리를 시작하세요.',
     READY: '픽업을 기다리는 주문이 없어요.'
   }[status];
-  return '<div class="rounded-2xl border-2 border-dashed border-slate-200 px-5 py-10 text-center text-[14px] text-slate-400">' + text + '</div>';
+  return '<div class="rounded-card bg-white/70 px-5 py-10 text-center text-[14px] font-medium text-sub">' + text + '</div>';
 }
 
 function orderHasRestaurant(o, rid) {
@@ -850,11 +854,11 @@ function restaurantChips() {
   const active = state.orders.filter(function (o) { return o.order_status === 'WAITING' || o.order_status === 'COOKING' || o.order_status === 'READY'; });
   const chip = function (id, label, n) {
     const on = state.restaurant === id;
-    return '<button onclick="setRestaurant(\'' + id + '\')" aria-pressed="' + on + '" class="h-10 px-4 rounded-full text-[14px] font-semibold flex items-center gap-1.5 whitespace-nowrap ' +
-      (on ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300') + '">' + label +
-      '<span class="' + (on ? 'text-white/60' : 'text-slate-400') + ' tnum">' + n + '</span></button>';
+    return '<button onclick="setRestaurant(\'' + id + '\')" aria-pressed="' + on + '" class="shrink-0 h-10 px-4 rounded-full text-[14px] font-semibold flex items-center gap-1.5 whitespace-nowrap ' +
+      (on ? 'bg-ink text-white' : 'bg-subtle text-sub hover:text-ink') + '">' + label +
+      '<span class="' + (on ? 'text-white/60' : 'text-weak') + ' tnum">' + n + '</span></button>';
   };
-  return '<div class="mb-4 flex gap-2 overflow-x-auto pb-1" role="group" aria-label="식당 필터">' +
+  return '<div class="mb-4 flex gap-2 overflow-x-auto no-scrollbar pb-1" role="group" aria-label="식당 필터">' +
     chip('all', '전체 식당', active.length) +
     Store.getRestaurants().map(function (r) { return chip(r.id, r.name + (r.open ? '' : ' (휴무)'), active.filter(function (o) { return orderHasRestaurant(o, r.id); }).length); }).join('') +
   '</div>';
@@ -862,17 +866,17 @@ function restaurantChips() {
 
 function renderLive() {
   const cols = [
-    { status: 'WAITING', title: '주문 접수', dot: 'bg-amber-500', bg: 'bg-blue-50', hint: '확인 후 조리를 시작하세요' },
-    { status: 'COOKING', title: '조리 중',   dot: 'bg-orange-500',  bg: 'bg-orange-50', hint: '완료되면 픽업 알림을 보내요' },
-    { status: 'READY',   title: '준비 완료', dot: 'bg-emerald-500', bg: 'bg-emerald-50', hint: '수령하면 처리해 주세요' }
+    { status: 'WAITING', title: '주문 접수', pill: 'bg-accent text-white', bg: 'bg-stage-wait', hint: '확인 후 조리를 시작하세요' },
+    { status: 'COOKING', title: '조리 중',   pill: 'bg-warn text-white',   bg: 'bg-stage-cook', hint: '완료되면 픽업 알림을 보내요' },
+    { status: 'READY',   title: '준비 완료', pill: 'bg-ok text-white',     bg: 'bg-stage-ready', hint: '수령하면 처리해 주세요' }
   ];
-  return restaurantChips() + '<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">' + cols.map(function (c) {
+  return restaurantChips() + '<div class="grid grid-cols-1 lg:grid-cols-3 gap-3 items-start">' + cols.map(function (c) {
     const list = byStatus(c.status).filter(function (o) { return state.restaurant === 'all' || orderHasRestaurant(o, state.restaurant); });
-    return '<section class="rounded-3xl ' + c.bg + ' p-3">' +
-      '<header class="px-2 pt-1 pb-3 flex items-center gap-2">' +
-        '<span class="w-2.5 h-2.5 rounded-full ' + c.dot + '"></span>' +
-        '<h3 class="text-[16px] font-bold">' + c.title + ' <span class="text-slate-400 font-semibold tnum">(' + list.length + '건)</span></h3>' +
-        '<span class="ml-auto text-[12px] text-slate-400 hidden xl:inline">' + c.hint + '</span>' +
+    return '<section class="rounded-card ' + c.bg + ' p-3 min-w-0">' +
+      '<header class="px-1.5 pt-1 pb-3 flex items-center gap-2">' +
+        '<h3 class="text-[17px] font-extrabold">' + c.title + '</h3>' +
+        '<span class="min-w-[26px] h-[22px] px-2 rounded-full text-[12px] font-bold flex items-center justify-center tnum ' + c.pill + '" aria-label="' + list.length + '건">' + list.length + '</span>' +
+        '<span class="ml-auto text-[12px] font-medium text-sub hidden xl:inline">' + c.hint + '</span>' +
       '</header>' +
       '<div class="space-y-3">' + (list.length ? list.map(orderCard).join('') : emptyColumn(c.status)) + '</div>' +
     '</section>';
@@ -886,32 +890,25 @@ function renderMenuView() {
   const sales = menuSales();
   const soldOutCount = MENUS.filter(function (m) { return state.soldOut[m.menu_id] === true; }).length;
   const head = '<div class="mb-4 flex flex-wrap items-center gap-3">' +
-    '<p class="text-[15px] font-semibold">판매 중 <span class="text-blue-700">' + (MENUS.length - soldOutCount) + '개</span>, 품절 <span class="' + (soldOutCount ? 'text-rose-600' : 'text-slate-400') + '">' + soldOutCount + '개</span></p>' +
-    '<p class="ml-auto text-[13px] text-slate-500 flex items-center gap-1.5"><i data-lucide="radio" class="w-4 h-4 text-emerald-500"></i>스위치를 바꾸면 키오스크와 학생 주문 화면에 바로 반영돼요</p></div>';
-  return head + '<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">' + MENUS.map(function (m) {
+    '<p class="text-[18px] font-extrabold">판매 중 <span class="text-accent tnum">' + (MENUS.length - soldOutCount) + '개</span>, 품절 <span class="tnum ' + (soldOutCount ? 'text-bad' : 'text-weak') + '">' + soldOutCount + '개</span></p>' +
+    '<p class="ml-auto text-[13px] font-medium text-sub flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-ok"></span>스위치를 바꾸면 키오스크와 학생 주문 화면에 바로 반영돼요</p></div>';
+  return head + '<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">' + MENUS.map(function (m) {
     const on = state.soldOut[m.menu_id] !== true;
     const s = sales[m.name] || { qty: 0, revenue: 0 };
-    return '<article class="rounded-3xl bg-white border border-slate-100 shadow-sm overflow-hidden">' +
-      '<div class="relative h-36 bg-slate-100 flex items-center justify-center ' + (on ? '' : 'grayscale opacity-60') + '">' +
-        '<span class="text-6xl">' + m.emoji + '</span>' +
+    return '<article class="rounded-card bg-white border border-line p-3 grid grid-cols-[72px_1fr_auto] gap-3 items-center">' +
+      '<div class="relative w-[72px] h-[72px] rounded-row overflow-hidden flex items-center justify-center text-[32px] ' + (on ? '' : 'grayscale opacity-50') + '" style="background:' + m.tone[0] + '">' + m.emoji +
         (m.img ? '<img src="' + m.img + '" alt="' + m.name + '" class="absolute inset-0 w-full h-full object-cover" onerror="this.remove()">' : '') +
-        '<span class="absolute top-3 left-3 text-[12px] font-bold px-2.5 py-1 rounded-full bg-white/90 text-slate-700">' + m.category + '</span>' +
-        (on ? '' : '<span class="absolute bottom-3 left-3 text-[12px] font-bold px-2.5 py-1 rounded-full bg-slate-900/80 text-white">품절 표시 중</span>') +
       '</div>' +
-      '<div class="p-5">' +
-        '<div class="flex items-start justify-between gap-3">' +
-          '<div class="min-w-0"><h3 class="text-[17px] font-bold truncate ' + (on ? '' : 'text-slate-400') + '">' + m.name + '</h3>' +
-          '<p class="text-[13px] text-slate-500">' + won(m.price) + ', 조리 ' + m.estimated_cook_time + '분</p></div>' +
-          '<div class="flex flex-col items-center gap-1 shrink-0">' +
-            '<button role="switch" aria-checked="' + on + '" aria-label="' + m.name + ' 판매 상태" onclick="toggleSoldOut(' + m.menu_id + ')" class="relative w-14 h-8 rounded-full transition-colors ' + (on ? 'bg-blue-500' : 'bg-slate-200') + '">' +
-              '<span class="switch-knob absolute top-1 w-6 h-6 rounded-full bg-white shadow" style="left:' + (on ? '28px' : '4px') + '"></span></button>' +
-            '<span class="text-[12px] font-bold ' + (on ? 'text-blue-700' : 'text-rose-500') + '">' + (on ? '판매중' : '품절') + '</span>' +
-          '</div>' +
-        '</div>' +
-        '<div class="mt-4 grid grid-cols-2 gap-2">' +
-          '<div class="rounded-2xl bg-slate-50 px-3 py-2.5"><p class="text-[12px] text-slate-500">오늘 판매</p><p class="text-[17px] font-bold tnum">' + s.qty + '개</p></div>' +
-          '<div class="rounded-2xl bg-slate-50 px-3 py-2.5"><p class="text-[12px] text-slate-500">매출</p><p class="text-[17px] font-bold tnum">' + won(s.revenue) + '</p></div>' +
-        '</div>' +
+      '<div class="min-w-0">' +
+        '<p class="text-[11px] font-bold text-sub">' + m.category + (on ? '' : ' · <span class="text-bad">품절 표시 중</span>') + '</p>' +
+        '<h3 class="text-[16px] font-bold leading-snug truncate ' + (on ? '' : 'text-weak') + '">' + m.name + '</h3>' +
+        '<p class="text-[12px] font-medium text-sub tnum">' + won(m.price) + ', 조리 ' + m.estimated_cook_time + '분</p>' +
+        '<p class="mt-1 text-[12px] font-medium text-sub tnum">오늘 판매 <b class="text-ink">' + s.qty + '개</b> · 매출 <b class="text-ink">' + won(s.revenue) + '</b></p>' +
+      '</div>' +
+      '<div class="flex flex-col items-center gap-1 shrink-0 self-start pt-1">' +
+        '<button role="switch" aria-checked="' + on + '" aria-label="' + m.name + ' 판매 상태" onclick="toggleSoldOut(' + m.menu_id + ')" class="relative w-[52px] h-8 rounded-full transition-colors ' + (on ? 'bg-accent' : 'bg-[#D1D6DB]') + '">' +
+          '<span class="switch-knob absolute top-1 w-6 h-6 rounded-full bg-white shadow" style="left:' + (on ? '24px' : '4px') + '"></span></button>' +
+        '<span class="text-[11px] font-bold ' + (on ? 'text-accent' : 'text-sub') + '">' + (on ? '판매중' : '품절') + '</span>' +
       '</div>' +
     '</article>';
   }).join('') + '</div>';
@@ -950,17 +947,17 @@ function renderSalesView() {
     const h = Math.max(4, Math.round(x.n / maxN * 100));
     const last = i === recent.length - 1;
     return '<div class="flex-1 h-full flex flex-col items-center justify-end gap-1.5">' +
-      '<span class="text-[12px] font-bold tnum ' + (x.n ? 'text-slate-700' : 'text-slate-300') + '">' + x.n + '</span>' +
-      '<div class="w-full flex-1 flex items-end justify-center"><div class="bar-grow w-full max-w-[28px] rounded-xl ' + (last ? 'bg-blue-500' : 'bg-blue-100') + '" style="height:' + h + '%;animation-delay:' + (i * 35) + 'ms"></div></div>' +
-      '<span class="text-[11px] text-slate-400 tnum">' + hhmm(x.t) + '</span></div>';
+      '<span class="text-[12px] font-bold tnum ' + (x.n ? 'text-ink' : 'text-weak') + '">' + x.n + '</span>' +
+      '<div class="w-full flex-1 flex items-end justify-center"><div class="bar-grow w-full max-w-[28px] rounded-[8px] ' + (last ? 'bg-accent' : 'bg-[#E5E8EB]') + '" style="height:' + h + '%;animation-delay:' + (i * 30) + 'ms"></div></div>' +
+      '<span class="text-[11px] font-medium text-sub tnum">' + hhmm(x.t) + '</span></div>';
   }).join('');
 
   const maxRev = Math.max(1, Math.max.apply(null, MENUS.map(function (m) { return (sales[m.name] || { revenue: 0 }).revenue; })));
   const menuBars = MENUS.slice().sort(function (a, b) { return (sales[b.name] || {}).revenue - (sales[a.name] || {}).revenue; }).map(function (m) {
     const r = sales[m.name] || { qty: 0, revenue: 0 };
     return '<li>' +
-      '<div class="flex items-center justify-between text-[14px]"><span class="font-semibold">' + m.emoji + ' ' + m.name + '</span><span class="tnum text-slate-500">' + r.qty + '개, <b class="text-slate-800">' + won(r.revenue) + '</b></span></div>' +
-      '<div class="mt-1.5 h-2.5 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-blue-500" style="width:' + Math.round(r.revenue / maxRev * 100) + '%"></div></div></li>';
+      '<div class="flex items-center justify-between gap-3 text-[14px]"><span class="font-semibold truncate">' + m.name + '</span><span class="tnum text-sub shrink-0">' + r.qty + '개, <b class="text-ink">' + won(r.revenue) + '</b></span></div>' +
+      '<div class="mt-1.5 h-2 rounded-full bg-subtle overflow-hidden"><div class="h-full rounded-full bg-accent" style="width:' + Math.round(r.revenue / maxRev * 100) + '%"></div></div></li>';
   }).join('');
 
   const mobileRev = s.valid.filter(function (o) { return o.channel === '모바일'; }).reduce(function (a, o) { return a + o.total_price; }, 0);
@@ -974,50 +971,53 @@ function renderSalesView() {
   const maxW = Math.max.apply(null, AI.timeline.map(function (p) { return p.w; }));
   const aiBars = AI.timeline.map(function (p, i) {
     const h = Math.max(8, Math.round(p.w / maxW * 100));
-    const color = p.rec ? 'bg-emerald-300' : p.now ? 'bg-white' : 'bg-white/30';
+    const color = p.rec ? 'bg-accent' : p.now ? 'bg-accent/45' : 'bg-[#E5E8EB]';
     const label = p.now ? '지금' : (p.rec || i === 0 || i === AI.timeline.length - 1) ? p.t : '';
     return '<div class="flex-1 h-full flex flex-col items-center justify-end gap-1.5">' +
       '<div class="w-full flex-1 flex items-end justify-center"><div class="bar-grow w-full max-w-[14px] rounded-full ' + color + '" style="height:' + h + '%;animation-delay:' + (i * 35) + 'ms"></div></div>' +
-      '<span class="h-4 text-[10px] leading-4 whitespace-nowrap ' + (p.rec ? 'text-emerald-200 font-bold' : p.now ? 'text-white font-bold' : 'text-blue-100/80') + '">' + label + '</span></div>';
+      '<span class="h-4 text-[10px] leading-4 whitespace-nowrap tnum ' + (p.rec ? 'text-accent font-bold' : p.now ? 'text-ink font-bold' : 'text-weak') + '">' + label + '</span></div>';
   }).join('');
 
-  return '<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">' +
-    '<article class="lg:col-span-2 rounded-3xl bg-white border border-slate-100 shadow-sm p-6">' +
-      '<div class="flex items-center justify-between"><h3 class="text-[17px] font-bold">10분 단위 주문 건수</h3><span class="text-[13px] text-slate-400">취소 주문 제외, 데모 시계 기준</span></div>' +
+  const lvTxt = AI.level === '혼잡' ? 'text-bad' : AI.level === '보통' ? 'text-warn' : 'text-ok';
+  const lvDot = AI.level === '혼잡' ? 'bg-bad' : AI.level === '보통' ? 'bg-warn' : 'bg-ok';
+  const card = 'rounded-card bg-white border border-line p-6';
+  return '<div class="grid grid-cols-1 lg:grid-cols-3 gap-3">' +
+    '<article class="lg:col-span-2 ' + card + '">' +
+      '<div class="flex items-center justify-between gap-3"><h3 class="text-[18px] font-extrabold">10분 단위 주문 건수</h3><span class="text-[12px] font-medium text-sub">취소 주문 제외, 데모 시계 기준</span></div>' +
       '<div class="mt-6 h-48 flex items-end gap-2">' + hourly + '</div>' +
     '</article>' +
 
-    '<article class="relative overflow-hidden rounded-3xl bg-blue-900 text-white p-6">' +
-      '<div class="relative flex items-center gap-2"><h3 class="text-[16px] font-bold">실시간 대기 현황</h3></div>' +
-      '<div class="relative mt-4 grid grid-cols-3 rounded-2xl bg-white/10 divide-x divide-white/15 text-center">' +
-        '<div class="p-3"><p class="text-[11px] text-blue-100">현재 대기</p><p class="mt-1 text-[20px] font-bold tnum">' + AI.currentWait + '분</p></div>' +
-        '<div class="p-3"><p class="text-[11px] text-blue-100">혼잡도</p><p class="mt-1 text-[20px] font-bold">' + AI.level + ' <span class="text-[13px]">' + AI.levelEmoji + '</span></p></div>' +
-        '<div class="p-3"><p class="text-[11px] text-blue-100">AI 추천</p><p class="mt-1 text-[15px] font-bold leading-tight">' + AI.recTime + '<br><span class="text-emerald-300 text-[12px]">대기 ' + AI.recWait + '분 ' + AI.recEmoji + '</span></p></div>' +
+    '<article class="' + card + '">' +
+      '<div class="flex items-center gap-2"><i data-lucide="timer" class="w-[18px] h-[18px] text-sub"></i><h3 class="text-[18px] font-extrabold">실시간 대기 현황</h3></div>' +
+      '<div class="mt-4 grid grid-cols-3 gap-2 text-center">' +
+        '<div class="rounded-row bg-subtle p-3"><p class="text-[11px] font-medium text-sub">현재 대기</p><p class="mt-1 text-[20px] font-extrabold tnum">' + AI.currentWait + '분</p></div>' +
+        '<div class="rounded-row bg-subtle p-3"><p class="text-[11px] font-medium text-sub">혼잡도</p><p class="mt-1 text-[20px] font-extrabold flex items-center justify-center gap-1.5 ' + lvTxt + '"><span class="w-2 h-2 rounded-full ' + lvDot + '"></span>' + AI.level + '</p></div>' +
+        '<div class="rounded-row bg-subtle p-3"><p class="text-[11px] font-medium text-sub">AI 추천</p><p class="mt-1 text-[15px] font-extrabold leading-tight tnum">' + AI.recTime + '<br><span class="text-ok text-[12px]">대기 ' + AI.recWait + '분</span></p></div>' +
       '</div>' +
-      '<div class="relative mt-5 h-24 flex items-end gap-1.5">' + aiBars + '</div>' +
-      '<p class="relative mt-3 text-[12px] text-blue-100">키오스크에서 ' + AI.recTime + ' 예약 주문을 안내하고 있어요</p>' +
+      '<div class="mt-5 h-24 flex items-end gap-1">' + aiBars + '</div>' +
+      '<p class="mt-3 text-[12px] font-medium text-sub">키오스크에서 ' + AI.recTime + ' 예약 주문을 안내하고 있어요</p>' +
     '</article>' +
 
-    '<article class="rounded-3xl bg-white border border-slate-100 shadow-sm p-6">' +
-      '<h3 class="text-[17px] font-bold">메뉴별 매출</h3><ul class="mt-5 space-y-4">' + menuBars + '</ul>' +
+    '<article class="' + card + '">' +
+      '<h3 class="text-[18px] font-extrabold">메뉴별 매출</h3><ul class="mt-5 space-y-4">' + menuBars + '</ul>' +
     '</article>' +
 
-    '<article class="rounded-3xl bg-white border border-slate-100 shadow-sm p-6">' +
-      '<h3 class="text-[17px] font-bold">주문 채널</h3>' +
-      '<div class="mt-5 h-3 rounded-full bg-slate-200 overflow-hidden flex"><div class="h-full bg-blue-500 rounded-full" style="width:' + mobilePct + '%"></div></div>' +
-      '<div class="mt-4 grid grid-cols-2 gap-3">' +
-        '<div class="rounded-2xl bg-blue-50 p-4"><p class="text-[13px] font-semibold text-blue-700 flex items-center gap-1"><i data-lucide="smartphone" class="w-4 h-4"></i>모바일</p><p class="mt-1 text-[22px] font-bold tnum">' + s.mobile + '건</p><p class="text-[13px] text-slate-500 tnum">' + won(mobileRev) + '</p></div>' +
-        '<div class="rounded-2xl bg-slate-100 p-4"><p class="text-[13px] font-semibold text-slate-700 flex items-center gap-1"><i data-lucide="monitor" class="w-4 h-4"></i>키오스크</p><p class="mt-1 text-[22px] font-bold tnum">' + s.kiosk + '건</p><p class="text-[13px] text-slate-500 tnum">' + won(kioskRev) + '</p></div>' +
+    '<article class="' + card + '">' +
+      '<h3 class="text-[18px] font-extrabold">주문 채널</h3>' +
+      '<div class="mt-5 h-2.5 rounded-full bg-subtle overflow-hidden flex"><div class="h-full bg-accent rounded-full" style="width:' + mobilePct + '%"></div></div>' +
+      '<div class="mt-4 grid grid-cols-2 gap-2">' +
+        '<div class="rounded-row bg-accent-soft p-4"><p class="text-[13px] font-semibold text-accent-press flex items-center gap-1"><i data-lucide="smartphone" class="w-4 h-4"></i>모바일</p><p class="mt-1 text-[22px] font-extrabold tnum">' + s.mobile + '건</p><p class="text-[13px] font-medium text-sub tnum">' + won(mobileRev) + '</p></div>' +
+        '<div class="rounded-row bg-subtle p-4"><p class="text-[13px] font-semibold text-sub flex items-center gap-1"><i data-lucide="monitor" class="w-4 h-4"></i>키오스크</p><p class="mt-1 text-[22px] font-extrabold tnum">' + s.kiosk + '건</p><p class="text-[13px] font-medium text-sub tnum">' + won(kioskRev) + '</p></div>' +
       '</div>' +
     '</article>' +
 
-    '<article class="rounded-3xl bg-white border border-slate-100 shadow-sm p-6">' +
-      '<h3 class="text-[17px] font-bold">운영 지표</h3>' +
-      '<dl class="mt-4 divide-y divide-slate-100 text-[15px]">' +
-        '<div class="py-3 flex justify-between"><dt class="text-slate-500">평균 객단가</dt><dd class="font-bold tnum">' + won(avgTicket) + '</dd></div>' +
-        '<div class="py-3 flex justify-between"><dt class="text-slate-500">주문부터 준비 완료까지</dt><dd class="font-bold tnum">평균 ' + avgLead + '분</dd></div>' +
-        '<div class="py-3 flex justify-between"><dt class="text-slate-500">수령 완료</dt><dd class="font-bold tnum">' + s.picked + '건</dd></div>' +
-        '<div class="py-3 flex justify-between"><dt class="text-slate-500">취소</dt><dd class="font-bold tnum ' + (s.canceled ? 'text-rose-500' : '') + '">' + s.canceled + '건</dd></div>' +
+    '<article class="' + card + '">' +
+      '<h3 class="text-[18px] font-extrabold">운영 지표</h3>' +
+      '<dl class="mt-4 divide-y divide-line text-[15px]">' +
+        '<div class="py-3 flex justify-between"><dt class="font-medium text-sub">평균 객단가</dt><dd class="font-bold tnum">' + won(avgTicket) + '</dd></div>' +
+        '<div class="py-3 flex justify-between"><dt class="font-medium text-sub">주문부터 준비 완료까지</dt><dd class="font-bold tnum">평균 ' + avgLead + '분</dd></div>' +
+        '<div class="py-3 flex justify-between"><dt class="font-medium text-sub">수령 완료</dt><dd class="font-bold tnum">' + s.picked + '건</dd></div>' +
+        '<div class="py-3 flex justify-between"><dt class="font-medium text-sub">취소</dt><dd class="font-bold tnum ' + (s.canceled ? 'text-bad' : '') + '">' + s.canceled + '건</dd></div>' +
       '</dl>' +
     '</article>' +
   '</div>';
@@ -1033,7 +1033,7 @@ function renderHistoryView() {
   const rows = list.map(function (o) {
     const done = o.order_status === 'PICKED_UP';
     const lead = done && o.ready_at ? Math.max(1, Math.round((o.ready_at - o.order_time) / MIN)) + '분' : '-';
-    return '<tr class="border-t border-slate-100 ' + (done ? '' : 'text-slate-400') + '">' +
+    return '<tr class="border-t border-line ' + (done ? '' : 'text-weak') + '">' +
       '<td class="px-6 py-3.5 font-bold tnum whitespace-nowrap">' + orderNo(o.order_number) + '</td>' +
       '<td class="px-3 py-3.5 whitespace-nowrap">' + channelBadge(o.channel) + '</td>' +
       '<td class="px-3 py-3.5 min-w-[200px]">' + o.items.map(function (i) { return i.menu_name + ' ' + i.quantity + '개'; }).join(', ') + '</td>' +
@@ -1041,22 +1041,22 @@ function renderHistoryView() {
       '<td class="px-3 py-3.5 tnum whitespace-nowrap">' + hhmm(o.order_time) + '</td>' +
       '<td class="px-3 py-3.5 tnum whitespace-nowrap">' + lead + '</td>' +
       '<td class="px-6 py-3.5 whitespace-nowrap"><span class="inline-flex h-6 px-2.5 rounded-full text-[12px] font-bold items-center ' +
-        (done ? 'bg-blue-50 text-blue-700' : 'bg-rose-50 text-rose-500') + '">' + (done ? '수령 완료' : '취소') + '</span></td>' +
+        (done ? 'bg-subtle text-ink' : 'bg-rose-50 text-bad') + '">' + (done ? '수령 완료' : '취소') + '</span></td>' +
     '</tr>';
   }).join('');
-  return '<article class="rounded-3xl bg-white border border-slate-100 shadow-sm overflow-hidden">' +
+  return '<article class="rounded-card bg-white border border-line overflow-hidden">' +
     '<header class="px-6 py-5 flex flex-wrap items-center gap-3">' +
-      '<h3 class="text-[17px] font-bold">완료 내역</h3>' +
-      '<span class="text-[13px] text-slate-500">수령 완료 ' + picked + '건, 취소 ' + (list.length - picked) + '건</span>' +
-      '<button onclick="exportTrainingCSV()" class="ml-auto h-10 px-4 rounded-xl bg-slate-900 text-white text-[13px] font-bold flex items-center gap-1.5"><i data-lucide="download" class="w-4 h-4"></i>AI 학습 데이터 내보내기</button>' +
+      '<h3 class="text-[18px] font-extrabold">완료 내역</h3>' +
+      '<span class="text-[13px] font-medium text-sub">수령 완료 ' + picked + '건, 취소 ' + (list.length - picked) + '건</span>' +
+      '<button onclick="exportTrainingCSV()" class="ml-auto h-10 px-4 rounded-full bg-ink text-white text-[13px] font-bold flex items-center gap-1.5"><i data-lucide="download" class="w-4 h-4"></i>AI 학습 데이터 내보내기</button>' +
     '</header>' +
     (list.length
       ? '<div class="overflow-x-auto"><table class="w-full text-[14px]">' +
-          '<thead class="bg-slate-50 text-[12px] text-slate-500 text-left"><tr>' +
+          '<thead class="bg-subtle text-[12px] text-sub text-left"><tr>' +
             '<th class="px-6 py-3 font-semibold">주문번호</th><th class="px-3 py-3 font-semibold">채널</th><th class="px-3 py-3 font-semibold">메뉴</th>' +
             '<th class="px-3 py-3 font-semibold text-right">금액</th><th class="px-3 py-3 font-semibold">주문 시각</th><th class="px-3 py-3 font-semibold">준비 소요</th><th class="px-6 py-3 font-semibold">상태</th>' +
           '</tr></thead><tbody>' + rows + '</tbody></table></div>'
-      : '<p class="px-6 pb-10 pt-4 text-center text-slate-400">아직 처리한 주문이 없어요. 실시간 주문에서 수령 완료를 처리하면 여기에 쌓여요.</p>') +
+      : '<p class="px-6 pb-10 pt-4 text-center font-medium text-sub">아직 처리한 주문이 없어요. 실시간 주문에서 수령 완료를 처리하면 여기에 쌓여요.</p>') +
   '</article>';
 }
 
@@ -1099,18 +1099,18 @@ function renderBoard() {
   const preparing = byStatus('WAITING').concat(byStatus('COOKING')).sort(function (a, b) { return a.order_number - b.order_number; });
   const ready = byStatus('READY');
   document.getElementById('boardBody').innerHTML =
-    '<section class="rounded-3xl bg-white/5 ring-1 ring-white/10 p-6">' +
-      '<h3 class="text-[20px] font-bold text-slate-300">준비 중 <span class="text-slate-500 tnum">' + preparing.length + '</span></h3>' +
-      '<div class="mt-5 grid grid-cols-2 xl:grid-cols-3 gap-3">' + (preparing.length ? preparing.map(function (o) {
-        return '<div class="rounded-2xl bg-white/10 py-5 text-center text-[30px] font-bold tnum text-slate-200">' + orderNo(o.order_number) + '</div>';
-      }).join('') : '<p class="col-span-full text-slate-500">준비 중인 주문이 없어요</p>') + '</div>' +
+    '<section class="rounded-card bg-subtle p-6 sm:p-8">' +
+      '<h3 class="text-[24px] font-extrabold text-sub flex items-center gap-2.5">준비 중 <span class="min-w-[36px] h-8 px-2.5 rounded-full bg-white text-[18px] text-ink flex items-center justify-center tnum">' + preparing.length + '</span></h3>' +
+      '<div class="mt-6 grid grid-cols-2 xl:grid-cols-3 gap-3">' + (preparing.length ? preparing.map(function (o) {
+        return '<div class="rounded-row bg-white py-6 text-center text-[40px] font-extrabold leading-none tnum text-ink">' + orderNo(o.order_number) + '</div>';
+      }).join('') : '<p class="col-span-full text-[18px] font-medium text-sub">준비 중인 주문이 없어요</p>') + '</div>' +
     '</section>' +
-    '<section class="rounded-3xl bg-blue-500/10 ring-1 ring-blue-400/30 p-6">' +
-      '<h3 class="text-[20px] font-bold text-blue-300 flex items-center gap-2"><i data-lucide="package-check" class="w-6 h-6"></i>준비 완료, 픽업해 주세요 <span class="text-blue-300 tnum">' + ready.length + '</span></h3>' +
-      '<div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">' + (ready.length ? ready.map(function (o) {
-        return '<div class="rounded-3xl bg-blue-700 text-white py-8 text-center shadow-lg shadow-blue-900/30"><p class="text-[56px] font-bold leading-none tnum tight">' + orderNo(o.order_number) + '</p>' +
-          '<p class="mt-3 text-[15px] text-white/90">' + o.items.map(function (i) { return i.menu_name; }).join(', ') + '</p></div>';
-      }).join('') : '<p class="col-span-full text-blue-200/70">픽업을 기다리는 주문이 없어요</p>') + '</div>' +
+    '<section class="rounded-card bg-white border-2 border-ok p-6 sm:p-8">' +
+      '<h3 class="text-[24px] font-extrabold text-ok flex items-center gap-2.5"><i data-lucide="package-check" class="w-7 h-7"></i>준비 완료, 픽업해 주세요 <span class="min-w-[36px] h-8 px-2.5 rounded-full bg-ok text-[18px] text-white flex items-center justify-center tnum">' + ready.length + '</span></h3>' +
+      '<div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">' + (ready.length ? ready.map(function (o) {
+        return '<div class="rounded-row bg-[#E6F7EE] py-8 text-center"><p class="text-[72px] font-extrabold leading-none tnum tight text-ok">' + orderNo(o.order_number) + '</p>' +
+          '<p class="mt-3 text-[16px] font-semibold text-sub">' + o.items.map(function (i) { return i.menu_name; }).join(', ') + '</p></div>';
+      }).join('') : '<p class="col-span-full text-[18px] font-medium text-sub">픽업을 기다리는 주문이 없어요</p>') + '</div>' +
     '</section>';
   refreshIcons();
 }
@@ -1178,7 +1178,7 @@ function init() {
 
   if (!state.storageOK) {
     const badge = document.getElementById('syncBadge');
-    badge.className = 'hidden md:inline-flex items-center gap-2 h-10 px-3.5 rounded-full bg-amber-50 text-amber-700 text-[13px] font-semibold';
+    badge.className = 'hidden md:inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-[#FFF4E6] text-warn text-[12px] font-semibold whitespace-nowrap';
     document.getElementById('syncText').textContent = '이 화면에서만 동작 중';
   }
 
