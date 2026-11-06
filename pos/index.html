@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#F9FAFB">
+<meta name="theme-color" content="#F5F8FC">
 <title>MJC Table 직원 POS</title>
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
@@ -17,22 +17,22 @@
     theme: {
       extend: {
         colors: {
-          blue:   { 50: '#E8F3FF', 100: '#C9E2FF', 200: '#90C2FF', 300: '#64A8FF', 400: '#5498F8', 500: '#3182F6', 600: '#2272EB', 700: '#1B64DA', 800: '#1957C2', 900: '#194AA6' },
-          indigo: { 50: '#E8F3FF', 100: '#C9E2FF', 500: '#2272EB', 600: '#1B64DA', 700: '#1957C2', 900: '#194AA6' },
-          slate:  { 50: '#F9FAFB', 100: '#F2F4F6', 200: '#E5E8EB', 300: '#D1D6DB', 400: '#B0B8C1', 500: '#6B7684', 600: '#4E5968', 700: '#333D4B', 800: '#333D4B', 900: '#191F28' },
+          blue:   { 50: '#EEF5FF', 100: '#DCE8FF', 200: '#90C2FF', 300: '#64A8FF', 400: '#5498F8', 500: '#3182F6', 600: '#2272EB', 700: '#1B64DA', 800: '#1957C2', 900: '#194AA6' },
+          indigo: { 50: '#EEF5FF', 100: '#DCE8FF', 500: '#2272EB', 600: '#1B64DA', 700: '#1957C2', 900: '#194AA6' },
+          slate:  { 50: '#F5F8FC', 100: '#F4F7FB', 200: '#E2E8F0', 300: '#D1D6DB', 400: '#B0B8C1', 500: '#64748B', 600: '#4E5968', 700: '#333D4B', 800: '#333D4B', 900: '#24364E' },
           rose:   { 50: '#FDECEE', 500: '#F04452', 600: '#F04452' },
-          bg: '#FFFFFF', subtle: '#F4F5F7', line: '#EEF0F2',
-          ink: '#191F28', sub: '#6B7684', weak: '#A0A7B0',
-          accent: { DEFAULT: '#3182F6', press: '#1B64DA', soft: '#E8F3FF' },
-          ok: '#03B26C', warn: '#FE9800', bad: '#F04452',
-          stage: { wait: '#E8F3FF', cook: '#FFF4E6', ready: '#E6F7EE' }
+          bg: '#FFFFFF', subtle: '#F4F7FB', line: '#E2E8F0',
+          ink: '#24364E', sub: '#64748B', weak: '#94A3B8',
+          accent: { DEFAULT: '#3182F6', press: '#1B64DA', soft: '#EEF5FF' },
+          ok: '#00A86B', warn: '#F59F00', bad: '#F04452',
+          stage: { wait: '#EEF5FF', cook: '#FFF4E6', ready: '#E6F7EE' }
         },
         borderRadius: { row: '14px', card: '20px', sheet: '28px' },
         fontFamily: {
           sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', '"Apple SD Gothic Neo"', '"Malgun Gothic"', '"Segoe UI"', 'Roboto', '"Noto Sans KR"', 'system-ui', 'sans-serif']
         },
         boxShadow: {
-          float: '0 6px 20px rgba(25,31,40,.08)', card: '0 6px 20px rgba(25,31,40,.08)'
+          float: '0 6px 20px rgba(36,54,78,.08)', card: '0 6px 20px rgba(36,54,78,.08)'
         }
       }
     }
@@ -40,12 +40,14 @@
 </script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
+  /* Figma Make 디자인 토큰: 숫자 폭 고정 */
+  :root { font-variant-numeric: tabular-nums; }
   :root {
-    --bg: #FFFFFF; --subtle: #F4F5F7; --line: #EEF0F2;
-    --ink: #191F28; --sub: #6B7684; --weak: #A0A7B0;
-    --accent: #3182F6; --accent-press: #1B64DA; --accent-soft: #E8F3FF;
-    --ok: #03B26C; --warn: #FE9800; --bad: #F04452;
-    --shadow: 0 6px 20px rgba(25,31,40,.08);
+    --bg: #FFFFFF; --subtle: #F4F7FB; --line: #E2E8F0;
+    --ink: #24364E; --sub: #64748B; --weak: #94A3B8;
+    --accent: #3182F6; --accent-press: #1B64DA; --accent-soft: #EEF5FF;
+    --ok: #00A86B; --warn: #F59F00; --bad: #F04452;
+    --shadow: 0 6px 20px rgba(36,54,78,.08);
     --ease: cubic-bezier(.2,.8,.2,1);
   }
   html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
@@ -787,7 +789,7 @@ function itemsList(o) {
   return '<ul class="mt-3 space-y-2">' + o.items.map(function (i) {
     const m = menuByName(i.menu_name);
     return '<li class="flex items-center gap-2.5">' +
-      '<span class="relative w-10 h-10 rounded-[10px] overflow-hidden flex items-center justify-center text-[18px] shrink-0" style="background: ' + (m ? m.tone[0] : '#F4F5F7') + '">' + (m ? m.emoji : '🍽️') +
+      '<span class="relative w-10 h-10 rounded-[10px] overflow-hidden flex items-center justify-center text-[18px] shrink-0" style="background: ' + (m ? m.tone[0] : '#F4F7FB') + '">' + (m ? m.emoji : '🍽️') +
         (m && m.img ? '<img src="' + m.img + '" alt="" class="absolute inset-0 w-full h-full object-cover" onerror="this.remove()">' : '') + '</span>' +
       '<span class="flex-1 min-w-0"><span class="block text-[15px] font-bold leading-tight truncate">' + i.menu_name + '</span>' +
         (m ? '<span class="block text-[12px] font-medium text-sub truncate">' + m.restaurantName + '</span>' : '') + '</span>' +
@@ -948,7 +950,7 @@ function renderSalesView() {
     const last = i === recent.length - 1;
     return '<div class="flex-1 h-full flex flex-col items-center justify-end gap-1.5">' +
       '<span class="text-[12px] font-bold tnum ' + (x.n ? 'text-ink' : 'text-weak') + '">' + x.n + '</span>' +
-      '<div class="w-full flex-1 flex items-end justify-center"><div class="bar-grow w-full max-w-[28px] rounded-[8px] ' + (last ? 'bg-accent' : 'bg-[#E5E8EB]') + '" style="height:' + h + '%;animation-delay:' + (i * 30) + 'ms"></div></div>' +
+      '<div class="w-full flex-1 flex items-end justify-center"><div class="bar-grow w-full max-w-[28px] rounded-[8px] ' + (last ? 'bg-accent' : 'bg-[#E2E8F0]') + '" style="height:' + h + '%;animation-delay:' + (i * 30) + 'ms"></div></div>' +
       '<span class="text-[11px] font-medium text-sub tnum">' + hhmm(x.t) + '</span></div>';
   }).join('');
 
@@ -971,7 +973,7 @@ function renderSalesView() {
   const maxW = Math.max.apply(null, AI.timeline.map(function (p) { return p.w; }));
   const aiBars = AI.timeline.map(function (p, i) {
     const h = Math.max(8, Math.round(p.w / maxW * 100));
-    const color = p.rec ? 'bg-accent' : p.now ? 'bg-accent/45' : 'bg-[#E5E8EB]';
+    const color = p.rec ? 'bg-accent' : p.now ? 'bg-accent/45' : 'bg-[#E2E8F0]';
     const label = p.now ? '지금' : (p.rec || i === 0 || i === AI.timeline.length - 1) ? p.t : '';
     return '<div class="flex-1 h-full flex flex-col items-center justify-end gap-1.5">' +
       '<div class="w-full flex-1 flex items-end justify-center"><div class="bar-grow w-full max-w-[14px] rounded-full ' + color + '" style="height:' + h + '%;animation-delay:' + (i * 35) + 'ms"></div></div>' +

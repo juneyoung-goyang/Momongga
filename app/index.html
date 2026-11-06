@@ -20,15 +20,15 @@
     theme: {
       extend: {
         colors: {
-          blue:  { 50: '#E8F3FF', 100: '#C9E2FF', 200: '#90C2FF', 300: '#64A8FF', 400: '#5498F8', 500: '#3182F6', 600: '#2272EB', 700: '#1B64DA', 800: '#1957C2', 900: '#194AA6' },
-          slate: { 50: '#F9FAFB', 100: '#F2F4F6', 200: '#E5E8EB', 300: '#D1D6DB', 400: '#B0B8C1', 500: '#6B7684', 600: '#4E5968', 700: '#333D4B', 800: '#333D4B', 900: '#191F28' },
-          bg: '#FFFFFF', subtle: '#F4F5F7', line: '#EEF0F2',
-          ink: '#191F28', sub: '#6B7684', weak: '#A0A7B0',
-          accent: { DEFAULT: '#3182F6', press: '#1B64DA', soft: '#E8F3FF' },
-          ok: '#03B26C', warn: '#FE9800', bad: '#F04452'
+          blue:  { 50: '#EEF5FF', 100: '#DCE8FF', 200: '#90C2FF', 300: '#64A8FF', 400: '#5498F8', 500: '#3182F6', 600: '#2272EB', 700: '#1B64DA', 800: '#1957C2', 900: '#194AA6' },
+          slate: { 50: '#F5F8FC', 100: '#F4F7FB', 200: '#E2E8F0', 300: '#D1D6DB', 400: '#B0B8C1', 500: '#64748B', 600: '#4E5968', 700: '#333D4B', 800: '#333D4B', 900: '#24364E' },
+          bg: '#FFFFFF', subtle: '#F4F7FB', line: '#E2E8F0',
+          ink: '#24364E', sub: '#64748B', weak: '#94A3B8',
+          accent: { DEFAULT: '#3182F6', press: '#1B64DA', soft: '#EEF5FF' },
+          ok: '#00A86B', warn: '#F59F00', bad: '#F04452'
         },
         borderRadius: { row: '14px', card: '20px', sheet: '28px' },
-        boxShadow: { card: '0 6px 20px rgba(25,31,40,.08)' },
+        boxShadow: { card: '0 6px 20px rgba(36,54,78,.08)' },
         transitionTimingFunction: { out: 'cubic-bezier(.2,.8,.2,1)' },
         fontFamily: { sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', '"Apple SD Gothic Neo"', '"Malgun Gothic"', 'system-ui', 'sans-serif'] }
       }
@@ -37,13 +37,15 @@
 </script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
+  /* Figma Make 디자인 토큰: 숫자 폭 고정 */
+  :root { font-variant-numeric: tabular-nums; }
   :root {
-    --bg: #FFFFFF; --subtle: #F4F5F7; --line: #EEF0F2;
-    --ink: #191F28; --sub: #6B7684; --weak: #A0A7B0;
-    --accent: #3182F6; --accent-press: #1B64DA; --accent-soft: #E8F3FF;
-    --ok: #03B26C; --warn: #FE9800; --bad: #F04452;
+    --bg: #FFFFFF; --subtle: #F4F7FB; --line: #E2E8F0;
+    --ink: #24364E; --sub: #64748B; --weak: #94A3B8;
+    --accent: #3182F6; --accent-press: #1B64DA; --accent-soft: #EEF5FF;
+    --ok: #00A86B; --warn: #F59F00; --bad: #F04452;
     --r-row: 14px; --r-card: 20px; --r-sheet: 28px;
-    --shadow: 0 6px 20px rgba(25,31,40,.08);
+    --shadow: 0 6px 20px rgba(36,54,78,.08);
     --ease: cubic-bezier(.2,.8,.2,1);
   }
   html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
@@ -93,6 +95,12 @@
   details > summary { list-style: none; cursor: pointer; }
   details > summary::-webkit-details-marker { display: none; }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; } .ring-draw, .tick-draw { stroke-dashoffset: 0; } button:not(:disabled):active { transform: none; } }
+
+  /* Figma Make 버튼 파티클 */
+  .fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 80; }
+  .fx-layer i { position: absolute; display: block; border-radius: 50%; background: #3182f6; animation: fx-pop .65s ease-out forwards; }
+  @keyframes fx-pop { from { transform: translate(-50%,-50%) scale(1); opacity: .9; } to { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.2); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .fx-layer { display: none; } }
 </style>
 </head>
 <body class="bg-subtle text-ink antialiased">
@@ -201,7 +209,7 @@ function menu(id) { return S.getMenus().find(m => m.menu_id === Number(id)); }
 function hasBatchim(w) { const c = w.charCodeAt(w.length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 !== 0; }
 function josa(w, a, b) { return w + (hasBatchim(w) ? a : b); }
 function photo(m, cls) {
-  const tone = m.tone || ['#F2F4F6', '#E5E8EB'];
+  const tone = m.tone || ['#F4F7FB', '#E2E8F0'];
   const ill = `<span class="absolute inset-0 flex items-center justify-center" style="background: ${tone[0]}; container-type: inline-size"><span class="flex items-center justify-center rounded-full bg-white/60" style="width: 64%; aspect-ratio: 1"><span class="leading-none select-none" style="font-size: 34cqw">${m.emoji}</span></span></span>`;
   return `<span class="relative block overflow-hidden bg-subtle ${cls}">${ill}${m.image ? `<img src="${m.image}" alt="" class="absolute inset-0 w-full h-full object-cover" onerror="this.remove()">` : ''}</span>`;
 }
@@ -323,7 +331,7 @@ function bannerHTML() {
     const isRec = x.t === p.recTime;
     const hi = isNow || isRec;
     return `<div class="flex-1 min-w-0 flex flex-col items-center justify-end gap-1 relative">
-      <div class="w-full max-w-[8px] rounded-full ${isRec ? 'bg-accent' : isNow ? 'bg-accent/45' : 'bg-[#E5E8EB]'}" style="height:${Math.max(10, Math.round(x.w / max * 100))}%"></div>
+      <div class="w-full max-w-[8px] rounded-full ${isRec ? 'bg-accent' : isNow ? 'bg-accent/45' : 'bg-[#E2E8F0]'}" style="height:${Math.max(10, Math.round(x.w / max * 100))}%"></div>
       ${hi ? `<span class="absolute -bottom-[18px] text-[10px] font-bold whitespace-nowrap ${isRec ? 'text-accent' : 'text-ink'}">${isNow ? '지금' : x.t}</span>` : ''}
     </div>`;
   }).join('');
@@ -769,10 +777,10 @@ function renderMy() {
   ${S.isMember() ? `  <section class="px-5">
     <div class="card p-5 flex items-center gap-5">
       <svg width="112" height="112" viewBox="0 0 112 112" role="img" aria-label="오늘 ${intake.total}kcal 섭취, 목표 ${intake.goal}kcal" class="shrink-0">
-        <circle cx="56" cy="56" r="${R}" fill="none" stroke="#F4F5F7" stroke-width="10"></circle>
+        <circle cx="56" cy="56" r="${R}" fill="none" stroke="#F4F7FB" stroke-width="10"></circle>
         <circle cx="56" cy="56" r="${R}" fill="none" stroke="${intake.remain < 0 ? '#F04452' : '#3182F6'}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - pct)}" transform="rotate(-90 56 56)" style="transition: stroke-dashoffset 280ms cubic-bezier(.2,.8,.2,1)"></circle>
-        <text x="56" y="54" text-anchor="middle" font-size="20" font-weight="800" fill="#191F28" style="font-variant-numeric: tabular-nums">${intake.total.toLocaleString('ko-KR')}</text>
-        <text x="56" y="72" text-anchor="middle" font-size="11" font-weight="500" fill="#6B7684">/ ${intake.goal.toLocaleString('ko-KR')}kcal</text>
+        <text x="56" y="54" text-anchor="middle" font-size="20" font-weight="800" fill="#24364E" style="font-variant-numeric: tabular-nums">${intake.total.toLocaleString('ko-KR')}</text>
+        <text x="56" y="72" text-anchor="middle" font-size="11" font-weight="500" fill="#64748B">/ ${intake.goal.toLocaleString('ko-KR')}kcal</text>
       </svg>
       <div class="flex-1 min-w-0">
         <p class="text-[13px] font-medium text-sub">${esc(p.name)}님의 오늘</p>
@@ -916,11 +924,11 @@ function openWhy() {
     const isNow = nowM >= m && nowM < m + 10;
     const isRec = x.t === p.recTime;
     return `<div class="flex-1 min-w-0 flex flex-col items-center gap-1"><span class="text-[10px] font-bold tnum ${isRec ? 'text-accent' : isNow ? 'text-ink' : 'text-transparent'}">${x.w}분</span>
-      <div class="w-full h-24 flex items-end justify-center"><div class="w-full max-w-[10px] rounded-full ${isRec ? 'bg-accent' : isNow ? 'bg-accent/45' : 'bg-[#E5E8EB]'}" style="height:${Math.max(8, x.w / max * 100)}%"></div></div>
+      <div class="w-full h-24 flex items-end justify-center"><div class="w-full max-w-[10px] rounded-full ${isRec ? 'bg-accent' : isNow ? 'bg-accent/45' : 'bg-[#E2E8F0]'}" style="height:${Math.max(8, x.w / max * 100)}%"></div></div>
       <span class="text-[10px] whitespace-nowrap ${isRec || isNow ? 'font-bold text-ink' : 'text-weak'}">${isNow ? '지금' : x.t.endsWith(':00') || isRec ? x.t : ''}</span></div>`;
   }).join('');
   document.getElementById('detailBody').innerHTML = `
-    <div class="pt-2.5 flex justify-center"><span class="w-10 h-1 rounded-full bg-[#E5E8EB]"></span></div>
+    <div class="pt-2.5 flex justify-center"><span class="w-10 h-1 rounded-full bg-[#E2E8F0]"></span></div>
     <div class="px-5 pt-3 pb-8">
       <div class="flex items-center justify-between"><h2 class="text-[20px] font-extrabold">AI가 이렇게 예측했어요</h2><button onclick="closeDetail()" class="w-10 h-10 -mr-2 rounded-full flex items-center justify-center text-sub" aria-label="닫기"><i data-lucide="x" class="w-5 h-5"></i></button></div>
       <p class="mt-1 text-[14px] font-medium text-sub">시간대별 예상 대기(분)예요. 파란 막대가 가장 덜 기다리는 시간이에요.</p>
@@ -957,7 +965,7 @@ function renderDetail() {
   const wTone = { ok: 'text-ok', warn: 'text-warn', bad: 'text-bad' }[waitTone(w)];
   document.getElementById('detailBody').innerHTML = `
     <div class="sticky top-0 z-10 bg-white rounded-t-sheet">
-      <div class="pt-2.5 flex justify-center"><span class="w-10 h-1 rounded-full bg-[#E5E8EB]"></span></div>
+      <div class="pt-2.5 flex justify-center"><span class="w-10 h-1 rounded-full bg-[#E2E8F0]"></span></div>
       <div class="px-5 pt-3 pb-4 flex items-center gap-3 border-b border-line">
         ${photo(m, 'w-14 h-14 rounded-row shrink-0')}
         <div class="flex-1 min-w-0">
@@ -1054,7 +1062,7 @@ function renderCart() {
   const total = cartTotal();
   const seg = on => `text-left rounded-[11px] px-3.5 py-2.5 ${on ? 'bg-white shadow-card' : ''}`;
   document.getElementById('cartBody').innerHTML = `
-    <div class="pt-2.5 flex justify-center"><span class="w-10 h-1 rounded-full bg-[#E5E8EB]"></span></div>
+    <div class="pt-2.5 flex justify-center"><span class="w-10 h-1 rounded-full bg-[#E2E8F0]"></span></div>
     <div class="px-5 pt-2 flex items-center justify-between"><h2 class="text-[24px] font-extrabold">주문 확인</h2><button onclick="closeCart()" class="w-10 h-10 -mr-2 rounded-full flex items-center justify-center text-sub" aria-label="닫기"><i data-lucide="x" class="w-5 h-5"></i></button></div>
     <div class="flex-1 overflow-y-auto px-5 pb-4">
       <p class="mt-3 text-[13px] font-semibold text-sub">받는 시간</p>
@@ -1112,7 +1120,7 @@ async function pay() {
 function showDone(o) {
   const reserve = o.pickup_type === 'RESERVED';
   document.getElementById('doneCard').innerHTML = `
-    <div class="flex justify-center pop"><svg width="80" height="80" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="30" fill="#E8F3FF"></circle><circle class="ring-draw" cx="40" cy="40" r="30" fill="none" stroke="#3182F6" stroke-width="5" stroke-linecap="round" transform="rotate(-90 40 40)"></circle><path class="tick-draw" d="M28 41 L36.5 49.5 L53 32.5" fill="none" stroke="#3182F6" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+    <div class="flex justify-center pop"><svg width="80" height="80" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="30" fill="#EEF5FF"></circle><circle class="ring-draw" cx="40" cy="40" r="30" fill="none" stroke="#3182F6" stroke-width="5" stroke-linecap="round" transform="rotate(-90 40 40)"></circle><path class="tick-draw" d="M28 41 L36.5 49.5 L53 32.5" fill="none" stroke="#3182F6" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
     <p class="mt-4 text-center text-[13px] font-semibold text-sub">주문번호</p>
     <h2 class="text-center text-[36px] leading-tight font-extrabold tnum">${S.orderNo(o.order_number)}</h2>
     <p class="text-center text-[17px] font-bold">접수 완료</p>
@@ -1187,6 +1195,25 @@ function init() {
   window.addEventListener('storage', refresh);
 }
 document.addEventListener('DOMContentLoaded', () => { (window.dbReady || Promise.resolve()).then(init); });
+</script>
+<script>
+/* Figma Make 버튼 파티클: 파란 주요 버튼 위에서 포인터를 움직이면 작은 점이 튀어요(동작 코드는 건드리지 않음) */
+(function () {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
+  var layer = document.createElement('div'); layer.className = 'fx-layer'; layer.setAttribute('aria-hidden', 'true');
+  document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(layer); });
+  var last = 0;
+  document.addEventListener('pointermove', function (e) {
+    var b = e.target.closest && e.target.closest('button');
+    if (!b || !/\bbg-accent\b/.test(b.className) || b.disabled) { return; }
+    var now = performance.now(); if (now - last < 42) { return; } last = now;
+    if (layer.childElementCount > 14) { layer.firstChild.remove(); }
+    var a = Math.random() * Math.PI * 2, sp = 10 + Math.random() * 12, sz = 3 + Math.random() * 3;
+    var i = document.createElement('i');
+    i.style.cssText = 'left:' + e.clientX + 'px;top:' + e.clientY + 'px;width:' + sz + 'px;height:' + sz + 'px;--dx:' + (Math.cos(a) * sp) + 'px;--dy:' + (Math.sin(a) * sp - 8) + 'px';
+    layer.appendChild(i); setTimeout(function () { i.remove(); }, 650);
+  }, { passive: true });
+})();
 </script>
 </body>
 </html>
