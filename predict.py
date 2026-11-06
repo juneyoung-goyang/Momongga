@@ -39,7 +39,7 @@ except Exception:
 # 설정값
 # ---------------------------------------------------------------------
 RANDOM_SEED = 42
-N_SAMPLES = 500
+N_SAMPLES = 1500
 
 LUNCH_START = 11 * 60          # 11:00
 LUNCH_END = 14 * 60            # 14:00
@@ -67,7 +67,16 @@ CURRENT_IS_EXAM = 0            # 1이면 시험기간
 CURRENT_IS_EVENT = 0           # 1이면 교내 행사
 CURRENT_IS_RAIN = 0            # 1이면 비
 
-FEATURES = ["minute_of_day", "weekday", "prev_15min_orders", "is_exam_period", "is_event", "is_rain", "is_peak"]
+BASE_FEATURES = ["minute_of_day", "weekday", "prev_15min_orders", "is_exam_period", "is_event", "is_rain", "is_peak"]
+
+# 2차 멘토링 반영: 메뉴 정보 변수 추가 (메뉴 종류별 주문, 인기·신메뉴 비율, 같은 시간대 과거 평균 대기)
+MENU_CATS = ["rice", "noodle", "katsu", "snack", "soup"]
+MENU_CAT_NAMES = {"rice": "밥", "noodle": "면", "katsu": "돈까스", "snack": "분식", "soup": "국"}
+MENU_COOK = {"rice": 5, "noodle": 5, "katsu": 8, "snack": 4, "soup": 6}   # 종류별 평균 조리시간(분, 메뉴 데이터 기준)
+MENU_FEATURES = ["prev_" + c for c in MENU_CATS] + ["popular_ratio", "past_avg_wait"]
+FEATURES = BASE_FEATURES + MENU_FEATURES
+POPULAR_BASE = 0.30            # 평소 인기 메뉴(판매 상위 5개) 주문 비율
+NEW_MENU_PROB = 0.15           # 신메뉴·인기 메뉴 이벤트가 있는 날 비율
 FEATURE_LABELS = {
     "minute_of_day": "시각(분)",
     "weekday": "요일",
@@ -76,6 +85,13 @@ FEATURE_LABELS = {
     "is_event": "교내 행사 여부",
     "is_rain": "비 여부",
     "is_peak": "피크타임 여부",
+    "prev_rice": "직전 15분 밥 주문",
+    "prev_noodle": "직전 15분 면 주문",
+    "prev_katsu": "직전 15분 돈까스 주문",
+    "prev_snack": "직전 15분 분식 주문",
+    "prev_soup": "직전 15분 국 주문",
+    "popular_ratio": "인기·신메뉴 주문 비율",
+    "past_avg_wait": "같은 시간대 과거 평균 대기",
 }
 
 USE_ASCII = "--ascii" in sys.argv
@@ -94,6 +110,43 @@ def demand_curve(minute):
 def is_peak(minute):
     minute = np.asarray(minute)
     return ((minute >= PEAK_START) & (minute <= PEAK_END)).astype(int)
+
+
+def menu_share(minute):
+    """시각별 메뉴 종류 비율. 피크에 가까울수록 조리가 긴 돈까스·국 비중이 커진다고 가정."""
+    minute = np.asarray(minute, dtype=float)
+    peak = np.exp(-((minute - PEAK_CENTER) / 48.0) ** 2)
+    raw = np.stack([0.28 + 0 * peak, 0.22 - 0.04 * peak, 0.15 + 0.06 * peak, 0.20 - 0.05 * peak, 0.15 + 0.03 * peak], axis=-1)
+    return raw / raw.sum(axis=-1, keepdims=True)
+
+
+def past_avg_wait(minute):
+    """같은 시간대의 과거 평균 대기시간(평일 평균 수요 기준)."""
+    return np.round(2.0 + 0.22 * demand_curve(minute), 1)
+
+
+def with_menu_features(df):
+    """메뉴 변수가 없는 행(시연 예측, 실제 주문 CSV)에 시간대별 평균값으로 메뉴 변수를 채움."""
+    df = df.copy()
+    share = menu_share(df["minute_of_day"].to_numpy())
+    prev = df["prev_15min_orders"].to_numpy(dtype=float)
+    for i, c in enumerate(MENU_CATS):
+        if "prev_" + c not in df:
+            df["prev_" + c] = np.round(prev * share[:, i]).astype(int)
+    if "popular_ratio" not in df:
+        df["popular_ratio"] = POPULAR_BASE
+    if "past_avg_wait" not in df:
+        df["past_avg_wait"] = past_avg_wait(df["minute_of_day"].to_numpy())
+    return df
+
+
+WAIT_THRESHOLDS = (8, 15)      # 혼잡도 = 학생이 체감하는 대기시간 기준: 8분 미만 원활, 15분 미만 보통, 그 이상 혼잡 (앱 기준과 동일)
+
+
+def wait_to_level(wait):
+    low, high = WAIT_THRESHOLDS
+    wait = np.asarray(wait)
+    return np.select([wait < low, wait < high], [0, 1], default=2)
 
 
 def orders_to_level(orders):
@@ -116,13 +169,25 @@ def generate_dataset(n_samples, rng):
     expected_prev = demand_curve(minute - 15) * factor
     prev_orders = np.clip(rng.normal(expected_prev, 3.0 + 0.10 * expected_prev), 0, None).round()
 
-    expected_next = demand_curve(minute) * factor
+    # 메뉴 종류별 직전 15분 주문: 시간대 비율을 중심으로 날마다 조금씩 다르게
+    share = np.array([rng.dirichlet(s * 60) for s in menu_share(minute - 15)])
+    cat_orders = np.round(prev_orders[:, None] * share).astype(int)
+    heavy_share = (cat_orders[:, 2] + cat_orders[:, 4]) / np.maximum(cat_orders.sum(axis=1), 1)
+
+    # 인기·신메뉴: 신메뉴 이벤트가 있는 날은 인기 메뉴 쏠림이 커지고 주문도 늘어남
+    new_menu = rng.random(n_samples) < NEW_MENU_PROB
+    popular = np.clip(rng.normal(POPULAR_BASE, 0.06, n_samples) + np.where(new_menu, 0.22, 0.0), 0.05, 0.9)
+
+    expected_next = demand_curve(minute) * factor * (1.0 + 0.5 * (popular - POPULAR_BASE))
     next_orders = expected_next + 0.45 * (prev_orders - expected_prev) + rng.normal(0, 3.0, n_samples)
     next_orders = np.clip(next_orders, 0, None).round()
 
-    wait_minutes = np.clip(2.0 + 0.22 * next_orders + rng.normal(0, 1.0, n_samples), 1, None).round()
+    # 대기시간: 주문 수 + 조리가 긴 메뉴(돈까스·국) 비중 + 인기 메뉴 쏠림(같은 주방에 몰림)
+    wait_minutes = (2.8 + 0.20 * next_orders + 9.0 * (heavy_share - 0.33)
+                    + 8.0 * (popular - POPULAR_BASE) + rng.normal(0, 1.0, n_samples))
+    wait_minutes = np.clip(wait_minutes, 1, None).round()
 
-    return pd.DataFrame({
+    data = {
         "minute_of_day": minute,
         "weekday": weekday,
         "prev_15min_orders": prev_orders.astype(int),
@@ -130,10 +195,15 @@ def generate_dataset(n_samples, rng):
         "is_event": is_event,
         "is_rain": is_rain,
         "is_peak": is_peak(minute),
-        "next_15min_orders": next_orders.astype(int),
-        "wait_minutes": wait_minutes.astype(int),
-        "congestion_level": orders_to_level(next_orders),
-    })
+    }
+    for i, c in enumerate(MENU_CATS):
+        data["prev_" + c] = cat_orders[:, i]
+    data["popular_ratio"] = popular.round(2)
+    data["past_avg_wait"] = past_avg_wait(minute)
+    data["next_15min_orders"] = next_orders.astype(int)
+    data["wait_minutes"] = wait_minutes.astype(int)
+    data["congestion_level"] = wait_to_level(wait_minutes)
+    return pd.DataFrame(data)
 
 
 # ---------------------------------------------------------------------
@@ -160,15 +230,25 @@ def train_models(df):
     )
     reg.fit(X_train, yw_train)
 
+    # 비교 2: 메뉴 변수 없이 기존 7개 변수만 쓴 모델
+    old_clf = RandomForestClassifier(n_estimators=200, max_depth=8, min_samples_leaf=3,
+                                     class_weight="balanced", random_state=RANDOM_SEED, n_jobs=-1)
+    old_clf.fit(X_train[BASE_FEATURES], yl_train)
+    old_reg = RandomForestRegressor(n_estimators=200, max_depth=8, min_samples_leaf=3,
+                                    random_state=RANDOM_SEED, n_jobs=-1)
+    old_reg.fit(X_train[BASE_FEATURES], yw_train)
+
     level_pred = clf.predict(X_test)
     # 비교 기준(단순 규칙): "다음 15분도 직전 15분과 같다"고 가정
-    base_level = orders_to_level(X_test["prev_15min_orders"].to_numpy())
     base_wait = np.round(2.0 + 0.22 * X_test["prev_15min_orders"].to_numpy())
+    base_level = wait_to_level(base_wait)
     metrics = {
         "accuracy": accuracy_score(yl_test, level_pred),
         "wait_mae": mean_absolute_error(yw_test, reg.predict(X_test)),
         "baseline_accuracy": accuracy_score(yl_test, base_level),
         "baseline_mae": mean_absolute_error(yw_test, base_wait),
+        "old_accuracy": accuracy_score(yl_test, old_clf.predict(X_test[BASE_FEATURES])),
+        "old_mae": mean_absolute_error(yw_test, old_reg.predict(X_test[BASE_FEATURES])),
         "report": classification_report(
             yl_test, level_pred, labels=[0, 1, 2], target_names=LEVELS, zero_division=0
         ),
@@ -198,9 +278,9 @@ def load_real_orders(path):
             "minute_of_day": m, "weekday": int(r["weekday"]), "prev_15min_orders": prev,
             "is_exam_period": int(r.get("is_exam", 0)), "is_event": int(r.get("is_event", 0)), "is_rain": int(r.get("is_rain", 0)),
             "is_peak": int(PEAK_START <= m <= PEAK_END), "next_15min_orders": nxt,
-            "wait_minutes": int(round(float(wait))), "congestion_level": int(orders_to_level(np.array([nxt]))[0]),
+            "wait_minutes": int(round(float(wait))), "congestion_level": int(wait_to_level(np.array([round(float(wait))]))[0]),
         })
-    return pd.DataFrame(rows)
+    return with_menu_features(pd.DataFrame(rows))
 
 
 # ---------------------------------------------------------------------
@@ -220,7 +300,7 @@ def export_forecast(clf, reg, metrics, df, n_real, path):
                     rows.append({"minute_of_day": minute, "weekday": weekday, "prev_15min_orders": prev,
                                  "is_exam_period": exam, "is_event": event, "is_rain": rain,
                                  "is_peak": int(PEAK_START <= minute <= PEAK_END)})
-                X = pd.DataFrame(rows)[FEATURES]
+                X = with_menu_features(pd.DataFrame(rows))[FEATURES]
                 waits = reg.predict(X)
                 levels = clf.predict(X)
                 timelines[f"{exam}{event}{rain}"] = [
@@ -233,7 +313,7 @@ def export_forecast(clf, reg, metrics, df, n_real, path):
         "model": "RandomForestClassifier(혼잡도) + RandomForestRegressor(대기시간)",
         "samples": int(len(df)), "real_orders": int(n_real),
         "weekday": weekday, "weekday_name": WEEKDAY_NAMES[weekday],
-        "metrics": {k: round(float(metrics[k]), 4) for k in ("accuracy", "wait_mae", "baseline_accuracy", "baseline_mae")},
+        "metrics": {k: round(float(metrics[k]), 4) for k in ("accuracy", "wait_mae", "baseline_accuracy", "baseline_mae", "old_accuracy", "old_mae")},
         "importance": [{"key": k, "label": FEATURE_LABELS[k], "score": round(float(v), 4)} for k, v in importance],
         "features": [{"key": k, "label": FEATURE_LABELS[k]} for k in FEATURES],
         "targets": ["15분 뒤 혼잡도(원활/보통/혼잡)", "15분 뒤 예상 대기시간(분)"],
@@ -258,7 +338,7 @@ def to_hhmm(minute):
 
 
 def make_row(minute, weekday, prev_orders, is_exam):
-    return pd.DataFrame([{
+    row = pd.DataFrame([{
         "minute_of_day": minute,
         "weekday": weekday,
         "prev_15min_orders": prev_orders,
@@ -266,7 +346,8 @@ def make_row(minute, weekday, prev_orders, is_exam):
         "is_event": CURRENT_IS_EVENT,
         "is_rain": CURRENT_IS_RAIN,
         "is_peak": int(PEAK_START <= minute <= PEAK_END),
-    }])[FEATURES]
+    }])
+    return with_menu_features(row)[FEATURES]
 
 
 def predict_slot(clf, reg, minute, weekday, prev_orders, is_exam):
@@ -407,6 +488,8 @@ def main():
         metrics["accuracy"] * 100, metrics["wait_mae"]))
     print("      비교: 단순 규칙(직전 15분이 그대로 간다고 가정) 정확도 {:.1f}%, 평균 오차 {:.2f}분".format(
         metrics["baseline_accuracy"] * 100, metrics["baseline_mae"]))
+    print("      비교: 메뉴 변수 없는 기존 7개 변수 모델 정확도 {:.1f}%, 평균 오차 {:.2f}분".format(
+        metrics["old_accuracy"] * 100, metrics["old_mae"]))
     print()
     print(metrics["report"])
 

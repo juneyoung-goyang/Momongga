@@ -280,12 +280,13 @@ function renderAI() {
   const p = S.predict();
   const fc = S.forecastInfo();
   const row = (key, label, desc) => `<div class="flex items-center justify-between py-4 border-t border-slate-100 first:border-0"><div><p class="text-[15px] font-semibold">${label} <span class="text-[12px] font-semibold text-blue-700">예측에 반영</span></p><p class="text-[13px] text-slate-500">${desc}</p></div>${switchBtn(!!c[key], `toggleFactor('${key}')`, label)}</div>`;
-  const pair = (label, model, base, unit, better) => {
-    const max = Math.max(model, base) || 1;
+  const pair = (label, model, base, unit, better, old) => {
+    const max = Math.max(model, base, old || 0) || 1;
     return `<div><p class="text-[14px] font-semibold">${label} <span class="text-[12px] font-normal text-slate-500">(${better})</span></p>
       <div class="mt-2 space-y-1.5">
         <div class="flex items-center gap-2"><span class="w-20 text-[12px] text-slate-600 shrink-0">AI 모델</span><div class="flex-1 h-3 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-blue-500" style="width:${model / max * 100}%"></div></div><span class="w-14 text-right text-[13px] font-bold tnum">${model}${unit}</span></div>
         <div class="flex items-center gap-2"><span class="w-20 text-[12px] text-slate-600 shrink-0">단순 규칙</span><div class="flex-1 h-3 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-slate-400" style="width:${base / max * 100}%"></div></div><span class="w-14 text-right text-[13px] font-bold tnum">${base}${unit}</span></div>
+        ${old != null ? `<div class="flex items-center gap-2"><span class="w-20 text-[12px] text-slate-600 shrink-0">메뉴 정보 없이</span><div class="flex-1 h-3 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-blue-200" style="width:${old / max * 100}%"></div></div><span class="w-14 text-right text-[13px] font-bold tnum">${old}${unit}</span></div>` : ''}
       </div></div>`;
   };
   const imp = fc ? fc.importance : [];
@@ -315,9 +316,9 @@ function renderAI() {
     <div class="mt-5 grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div class="space-y-5">
         <p class="text-[15px] font-extrabold">단순 규칙과 비교</p>
-        ${pair('혼잡도 정확도', Math.round(fc.metrics.accuracy * 100), Math.round(fc.metrics.baseline_accuracy * 100), '%', '높을수록 좋아요')}
-        ${pair('대기시간 평균 오차', fc.metrics.wait_mae.toFixed(2), fc.metrics.baseline_mae.toFixed(2), '분', '낮을수록 좋아요')}
-        <p class="text-[12px] leading-relaxed text-slate-500">단순 규칙: "다음 15분도 직전 15분과 같다"고 가정한 예측이에요.</p>
+        ${pair('혼잡도 정확도', Math.round(fc.metrics.accuracy * 100), Math.round(fc.metrics.baseline_accuracy * 100), '%', '높을수록 좋아요', fc.metrics.old_accuracy != null ? Math.round(fc.metrics.old_accuracy * 100) : null)}
+        ${pair('대기시간 평균 오차', fc.metrics.wait_mae.toFixed(2), fc.metrics.baseline_mae.toFixed(2), '분', '낮을수록 좋아요', fc.metrics.old_mae != null ? fc.metrics.old_mae.toFixed(2) : null)}
+        <p class="text-[12px] leading-relaxed text-slate-500">단순 규칙: "다음 15분도 직전 15분과 같다"고 가정한 예측이에요. '메뉴 정보 없이'는 메뉴 변수 7개를 빼고 학습한 같은 모델이에요.</p>
       </div>
       <div>
         <p class="text-[15px] font-extrabold">예측에 가장 영향을 준 정보</p>
