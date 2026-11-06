@@ -197,9 +197,14 @@
       '2. 학생이 시간 제한을 말하면 wait_minutes로 비교. 칼로리 이야기는 남은 칼로리와 비교.',
       '3. 질문에 조건이 없으면 학생의 최근 메뉴와 겹치지 않게 고르고, 어제 매운 걸 먹었다면 순한 메뉴를 우선.',
       '4. reply는 해요체 2문장 이내, 숫자(분, kcal, 원)를 넣어 구체적으로. 메뉴에 없는 정보는 지어내지 마.',
+      '   여러 메뉴를 함께 주문받을 때 합계 금액과 총 소요 시간은 말하지 마(앱이 계산해서 보여 줌). 개별 메뉴의 분·원은 위 데이터 값만 써.',
       '5. 학생이 정한 시간 안에 받을 수 없거나 지금 혼잡하면 action.type을 "reserve"로 하고 추천 시간에 예약을 권해.',
       '   학생이 주문까지 해 달라고 하면 action.type을 "add"로. 그 외에는 "none".',
-      '출력은 JSON 하나만: {"sql": "...", "reply": "...", "pick_ids": [숫자], "action": {"type": "none|add|reserve", "menu_id": 숫자 또는 null}}'
+      '6. 학생이 메뉴 이름을 직접 말하며 담아 달라고 하면 action.items에 말한 메뉴를 모두 넣어. 수량을 말하면 qty에 숫자로(말 안 하면 1).',
+      '   메뉴 이름은 [오늘 메뉴 데이터]의 menu_id로만 찾아. 데이터에 없는 메뉴는 items에 넣지 말고 reply에서 없다고 알려 줘.',
+      '7. 아직 장바구니에 담지 않았어. 앱이 버튼으로 담아 주니까 reply에 "담아드렸어요" 같은 완료 표현은 쓰지 말고 "담을 수 있어요", "아래 버튼으로 담아 보세요"처럼 말해.',
+      '출력은 JSON 하나만: {"sql": "...", "reply": "...", "pick_ids": [숫자], "action": {"type": "none|add|reserve", "items": [{"menu_id": 숫자, "qty": 숫자}]}}',
+      'action.type이 "none"이면 items는 빈 배열 [].'
     ].join('\n');
   }
 
@@ -249,13 +254,45 @@
     return rows.slice(0, 3).map(function (r) { return r.menu_id; });
   }
 
+  /* LLM이 준 action을 안전하게 정리: 존재하고 주문 가능한 메뉴만, 수량 1~9, 최대 5개. 예전 형식(menu_id 하나)도 받아 줌 */
+  function normalizeAction(action, menus) {
+    var a = action && typeof action === 'object' ? action : {};
+    var type = (a.type === 'add' || a.type === 'reserve') ? a.type : 'none';
+    var raw = Array.isArray(a.items) ? a.items : [];
+    if (!raw.length && a.menu_id) { raw = [{ menu_id: a.menu_id, qty: 1 }]; }
+    var seen = {}, items = [];
+    raw.forEach(function (it) {
+      var id = Number(it && it.menu_id);
+      var m = menus.find(function (x) { return x.menu_id === id; });
+      if (!m || seen[id]) { return; }
+      seen[id] = true;
+      var q = Math.round(Number(it.qty));
+      items.push({ menu_id: id, qty: q >= 1 && q <= 9 ? q : 1 });
+    });
+    items = items.slice(0, 5);
+    return { type: type, menu_id: items.length ? items[0].menu_id : null, items: items };
+  }
+
+  /* 실제로 담지 않았는데 '담아드렸어요'라고 말하는 문장을 막음 */
+  function fixReply(text) {
+    return String(text || '').replace(/(장바구니에\s*)?담아\s*드렸(어요|습니다)[.!]?/g, '아래 버튼으로 담을 수 있어요.');
+  }
+
+  /* 여러 메뉴 주문일 때 AI가 지어낼 수 있는 합계 금액·총 시간 문장을 지움(앱이 정확히 계산해서 보여 줌) */
+  function dropTotals(text) {
+    var parts = String(text || '').split(/(?<=[.!?])\s+/);
+    var kept = parts.filter(function (p) { return !/합계|총\s*[\d,]+\s*원|[\d,]+\s*원에\s*\d+\s*분|\d+\s*분\s*(내로|안에)\s*(준비|받|나)/.test(p); });
+    var r = kept.join(' ').trim();
+    return r || '아래 버튼으로 담을 수 있어요.';
+  }
+
   function objName(w) { var c = w.charCodeAt(w.length - 1); var b = c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 !== 0; return w + (b ? '을' : '를'); }
 
   /* ---------- 공개 함수 ---------- */
   async function ask(question, history) {
     var ctx = context();
     var pred = ctx.pred;
-    var out = { engine: 'rule', via: null, sql: '', reply: '', ids: [], action: { type: 'none', menu_id: null }, error: null };
+    var out = { engine: 'rule', via: null, sql: '', reply: '', ids: [], action: { type: 'none', menu_id: null, items: [] }, error: null };
 
     var claude = null;
     try {
@@ -268,19 +305,29 @@
         var j = parseJSON(claude.text);
         out.engine = 'llm'; out.via = claude.via; out.provider = claude.provider; out.model = claude.model;
         out.sql = j.sql || ''; out.reply = j.reply || '';
-        out.action = j.action || out.action;
+        out.action = normalizeAction(j.action, ctx.menus);
+        out.reply = fixReply(out.reply);
         var ids = null;
         try { ids = await runSql(out.sql, ctx.menus, pred); } catch (e) { out.error = 'SQL 실행 실패: ' + e.message; }
         if (ids === null) { ids = jsFilter(out.sql, ctx.menus, pred); }
         var picks = (j.pick_ids || []).map(Number);
         out.ids = picks.filter(function (id) { return ids.indexOf(id) >= 0; }).concat(ids.filter(function (id) { return picks.indexOf(id) < 0; })).slice(0, 3);
         if (!out.ids.length && picks.length) { out.ids = picks.slice(0, 3); }
+        /* 학생이 직접 고른 메뉴(items)는 SQL 결과와 상관없이 카드에 모두 보여 줌 */
+        var itemIds = out.action.items.map(function (it) { return it.menu_id; });
+        if (itemIds.length >= 2) {
+          /* 여러 메뉴를 직접 골랐으면 고른 메뉴만 보여 줌(다른 추천 카드가 섞이면 헷갈림). 합계·시간은 앱이 계산하므로 AI 문장의 합계 표현은 지움 */
+          out.ids = itemIds;
+          out.reply = dropTotals(out.reply);
+        } else if (itemIds.length) {
+          out.ids = itemIds.concat(out.ids.filter(function (id) { return itemIds.indexOf(id) < 0; })).slice(0, 3);
+        }
       } catch (e) { claude = null; out.error = 'AI 응답을 해석하지 못했어요'; }
     }
 
     if (!claude) {
       var r = ruleBased(question, ctx);
-      out.sql = r.sql; out.action = r.action;
+      out.sql = r.sql; out.action = { type: r.action.type, menu_id: null, items: [] };
       var rid = null;
       try { rid = await runSql(r.sql, ctx.menus, pred); } catch (e) { rid = null; }
       out.ids = rid === null ? jsFilter(r.sql, ctx.menus, pred) : rid;
@@ -298,7 +345,7 @@
         var lim = (question.replace(/\s/g, '').match(/(\d+)분/) || [])[1];
         out.reply = '지금은 ' + lim + '분 안에 받을 수 있는 메뉴가 없어요. 가장 빠른 건 ' + objName(first.name).replace(/[을를]$/, '') + '(약 ' + Store.menuWait(first, pred) + '분)이에요.' +
           (pred.recTime ? ' ' + pred.recTime + '에 예약하면 대기 약 ' + pred.recWait + '분이에요.' : '');
-        out.action = pred.recTime ? { type: 'reserve', menu_id: first.menu_id } : { type: 'none', menu_id: null };
+        out.action = pred.recTime ? { type: 'reserve', menu_id: first.menu_id, items: [{ menu_id: first.menu_id, qty: 1 }] } : { type: 'none', menu_id: null, items: [] };
       } else if (!first) {
         out.reply = '조건에 맞는 메뉴가 지금은 없어요. 조건을 하나 빼고 다시 물어봐 주세요.';
       } else {

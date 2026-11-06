@@ -189,7 +189,7 @@
     <span class="w-10 h-10 rounded-2xl bg-blue-500 flex items-center justify-center"><i data-lucide="utensils-crossed" class="w-5 h-5"></i></span>
     <div class="leading-tight">
       <h2 id="boardTitle" class="text-[20px] font-bold">MJC Table 픽업 보드</h2>
-      <p class="text-[13px] text-slate-400">번호가 초록색으로 바뀌면 수령대로 와 주세요</p>
+      <p class="text-[13px] text-slate-400">번호가 초록색으로 바뀌면 수령해 주세요</p>
     </div>
     <span id="boardClock" class="ml-auto text-[26px] font-bold tnum">12:20</span>
     <button onclick="closeBoard()" class="ml-2 h-11 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-[14px] font-semibold flex items-center gap-1.5"><i data-lucide="x" class="w-4 h-4"></i>POS로 돌아가기</button>
@@ -534,7 +534,7 @@ function startCooking(no) {
 function markReady(no) {
   updateOrder(no, { order_status: 'READY', ready_at: demoNow() });
   toast(orderNo(no) + ' 준비 완료, 픽업 알림을 보냈어요');
-  speak(no + '번 고객님, 주문하신 메뉴가 준비되었습니다. 수령대로 와 주세요.');
+  speak(no + '번 고객님, 주문하신 메뉴가 준비됐어요. 수령해 주세요.');
 }
 
 function markPickedUp(no) {

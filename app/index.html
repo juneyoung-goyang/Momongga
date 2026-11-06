@@ -65,6 +65,16 @@
   <main id="view" class="pb-40"></main>
 </div>
 
+<!-- AI 탭 담은 메뉴 버튼 -->
+<div class="fixed inset-x-0 z-30 pointer-events-none" style="bottom: calc(148px + env(safe-area-inset-bottom, 0px));">
+  <div class="max-w-[430px] mx-auto px-4 flex justify-end">
+    <button id="aiCartFab" onclick="openCart()" aria-label="담은 메뉴 보기" class="hidden pointer-events-auto relative w-14 h-14 rounded-full bg-slate-900 text-white shadow-lg flex items-center justify-center">
+      <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+      <span id="aiCartFabCount" class="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1.5 rounded-full bg-rose-500 text-white text-[12px] font-bold flex items-center justify-center tnum">0</span>
+    </button>
+  </div>
+</div>
+
 <!-- 장바구니 바 -->
 <div class="fixed inset-x-0 z-30 pointer-events-none" style="bottom: calc(76px + env(safe-area-inset-bottom, 0px));">
   <div class="max-w-[430px] mx-auto px-3">
@@ -620,7 +630,7 @@ function renderOrders() {
     return `<article class="rounded-3xl p-5 ${ready ? 'bg-blue-800 text-white' : 'bg-white border border-slate-100 shadow-sm'}">
       <div class="flex items-center gap-2">${tag('주문번호 ' + S.orderNo(o.order_number), ready ? 'dark' : 'gray')}${o.pickup_type === 'RESERVED' ? tag(o.pickup_time + ' 예약', 'blue') : ''}</div>
       <h2 class="mt-3 text-[24px] font-extrabold">${ready ? S.orderNo(o.order_number) + ' 나왔어요!' : o.order_status === 'COOKING' ? '조리하고 있어요' : '주문을 접수했어요'}</h2>
-      <p class="mt-1 text-[14px] ${ready ? 'text-white/90' : 'text-slate-600'}">${ready ? '학생회관 1층 수령대로 와 주세요' : '받는 시간 ' + eta}</p>
+      <p class="mt-1 text-[14px] ${ready ? 'text-white/90' : 'text-slate-600'}">${ready ? '메뉴가 준비됐어요. 수령해 주세요' : '받는 시간 ' + eta}</p>
       <div class="mt-4 h-1.5 rounded-full ${ready ? 'bg-white/25' : 'bg-slate-100'} overflow-hidden"><div class="h-full rounded-full ${ready ? 'bg-white' : 'bg-blue-500'}" style="width:${[18, 55, 100][step]}%"></div></div>
       <ol class="mt-2 grid grid-cols-3 text-[12px] font-semibold">
         <li class="${step >= 0 ? (ready ? 'text-white' : 'text-blue-700') : 'text-slate-400'}">접수</li>
@@ -660,7 +670,7 @@ function renderMy() {
     const mine = S.myOrders().slice().sort((x, y) => y.order_time - x.order_time);
     const act = mine.filter(o => ['WAITING', 'COOKING', 'READY'].includes(o.order_status));
     const ready = act.find(o => o.order_status === 'READY');
-    const sub = ready ? S.orderNo(ready.order_number) + ' 나왔어요! 수령대로 와 주세요'
+    const sub = ready ? S.orderNo(ready.order_number) + ' 나왔어요! 메뉴가 준비됐어요. 수령해 주세요'
       : act.length ? '진행 중인 주문 ' + act.length + '건 · ' + act[0].items.map(i => i.menu_name).join(', ')
       : mine.length ? '최근 ' + mine[0].items.map(i => i.menu_name).join(', ')
       : '아직 주문한 메뉴가 없어요';
@@ -915,6 +925,8 @@ function renderCartBar() {
   const n = cartCount();
   const bar = document.getElementById('cartBar');
   bar.classList.toggle('show', n > 0 && state.tab !== 'ai');
+  const fab = document.getElementById('aiCartFab');
+  if (fab) { fab.classList.toggle('hidden', !(n > 0 && state.tab === 'ai')); document.getElementById('aiCartFabCount').textContent = n; }
   document.getElementById('cartCount').textContent = n;
   document.getElementById('cartTotal').textContent = won(cartTotal());
   const p = S.predict();
@@ -1044,7 +1056,7 @@ function checkReady() {
   S.myOrders().forEach(o => {
     const prev = state.knownStatus[o.order_number];
     if (prev && prev !== o.order_status && o.order_status === 'READY') {
-      toast(S.orderNo(o.order_number) + ' 나왔어요! 수령대로 와 주세요', 'bell-ring');
+      toast(S.orderNo(o.order_number) + ' 나왔어요! 메뉴가 준비됐어요. 수령해 주세요', 'bell-ring');
       if (navigator.vibrate) { navigator.vibrate([120, 60, 120]); }
     }
     state.knownStatus[o.order_number] = o.order_status;
