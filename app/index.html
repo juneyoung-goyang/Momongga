@@ -63,6 +63,7 @@
   .fade.open { opacity: 1; pointer-events: auto; }
   .cartbar { transform: translateY(160%); transition: transform 280ms var(--ease); }
   .cartbar.show { transform: translateY(0); }
+  #cartBar:active { transform: translateY(0); background: var(--accent-press); }
   @keyframes pop { 0% { transform: scale(0.94); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
   .pop { animation: pop 260ms var(--ease); }
   @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -111,15 +112,18 @@
 </div>
 
 <!-- 장바구니 바 -->
-<div class="fixed inset-x-0 z-30 pointer-events-none" style="bottom: calc(76px + env(safe-area-inset-bottom, 0px));">
-  <div class="max-w-[430px] mx-auto px-3">
-    <button id="cartBar" onclick="openCart()" class="cartbar pointer-events-auto w-full rounded-2xl bg-slate-900 text-white shadow-2xl shadow-slate-900/30 p-2 pl-4 flex items-center gap-3">
-      <span id="cartCount" class="w-8 h-8 rounded-full bg-white text-blue-700 text-[14px] font-bold flex items-center justify-center tnum">0</span>
-      <span class="flex-1 text-left leading-tight">
-        <span id="cartTotal" class="block text-[16px] font-bold tnum">0원</span>
-        <span id="cartSub" class="block text-[12px] text-slate-400 truncate">지금 바로 받기</span>
+<div class="fixed inset-x-0 z-30 pointer-events-none" style="bottom: calc(68px + env(safe-area-inset-bottom, 0px));">
+  <div class="max-w-[430px] mx-auto">
+    <button id="cartBar" onclick="openCart()" class="cartbar pointer-events-auto relative w-full h-16 bg-accent text-white flex items-center gap-2 pl-[88px] pr-3 text-left">
+      <span class="absolute left-4 -top-[26px] w-[56px] h-[60px]" aria-hidden="true">
+        <svg width="56" height="60" viewBox="0 0 56 60" fill="none"><path d="M19 20v-4a9 9 0 0 1 18 0v4" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M9.5 20h37l2.5 32a5 5 0 0 1-5 5.4H12a5 5 0 0 1-5-5.4L9.5 20Z" fill="#3182F6" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/></svg>
       </span>
-      <span class="h-12 px-5 rounded-xl bg-blue-500 text-[17px] font-extrabold flex items-center">주문하기</span>
+      <span id="cartCount" class="absolute left-[56px] -top-[30px] min-w-[24px] h-6 px-1.5 rounded-full bg-white text-accent text-[13px] font-extrabold flex items-center justify-center tnum shadow-card">0</span>
+      <span class="flex-1 min-w-0 text-center leading-tight">
+        <span id="cartTotal" class="block text-[20px] font-extrabold tnum">0원</span>
+        <span id="cartSub" class="block text-[11px] font-medium text-white/80 truncate">지금 바로 받기</span>
+      </span>
+      <span class="h-10 px-4 rounded-full bg-white text-accent text-[15px] font-extrabold flex items-center shrink-0">주문하기</span>
     </button>
   </div>
 </div>
@@ -434,44 +438,86 @@ function renderHome() {
 }
 
 /* ---------- 식당 상세 ---------- */
+/* 왼쪽 분류 레일 + 오른쪽 메뉴 목록 (top: 고정 헤더 높이) */
+function railLayout(items, list, top) {
+  return `<div class="flex" style="min-height: calc(100vh - ${top})">
+    <nav class="rail w-[76px] shrink-0" aria-label="분류">
+      <div class="sticky py-2" style="top: ${top}">${items}</div>
+    </nav>
+    <div class="flex-1 min-w-0 bg-white">${list}</div>
+  </div>`;
+}
+function railItem(on, onclick, inner, badge, label) {
+  return `<button onclick="${onclick}" aria-current="${on}" aria-label="${label}" class="rail-item ml-1.5 w-[calc(100%-6px)] min-h-[64px] py-2.5 pl-1 pr-1.5 flex flex-col items-center justify-center gap-1 text-center ${on ? 'text-ink' : 'text-sub'}">
+    <span class="rail-mark absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-accent"></span>
+    ${inner}
+    ${badge ? `<span class="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center tnum">${badge}</span>` : ''}
+  </button>`;
+}
 function renderRestaurant() {
   const r = S.restaurantById(state.restaurantId) || S.getRestaurants()[0];
   const pred = S.predict();
   const list = menus().filter(m => m.restaurant === r.id).sort((a, b) => (b.orderable - a.orderable) || S.menuWait(a, pred) - S.menuWait(b, pred));
   const q = pred.queues[r.id] || 0;
-  return `
-  <div class="relative">
-    ${restPhoto(r, 'w-full h-[220px]')}
-    <div class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-slate-900/30 to-transparent"></div>
-    <button onclick="go('home')" class="absolute left-3 w-11 h-11 rounded-full bg-white/90 shadow flex items-center justify-center" style="top: max(12px, env(safe-area-inset-top))" aria-label="홈으로"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
-  </div>
-  <div class="relative -mt-6 bg-white rounded-t-3xl px-5 pt-6">
-    <p class="text-[13px] font-semibold text-blue-700">${r.category}</p>
-    <h1 class="text-[26px] font-extrabold leading-tight">${r.name}</h1>
-    <p class="mt-1 text-[14px] text-slate-600">${r.desc}</p>
-    <div class="mt-4 grid grid-cols-3 gap-2 text-center">
-      <div class="rounded-2xl bg-slate-50 py-3"><p class="text-[12px] text-slate-600">지금 받으면</p><p class="mt-0.5 text-[18px] font-extrabold tnum">${r.open ? '약 ' + S.restaurantWait(r.id, pred) + '분' : '-'}</p></div>
-      <div class="rounded-2xl bg-slate-50 py-3"><p class="text-[12px] text-slate-600">주방 대기</p><p class="mt-0.5 text-[18px] font-extrabold tnum">${q ? q + '분 분량' : '없음'}</p></div>
-      <div class="rounded-2xl bg-slate-50 py-3"><p class="text-[12px] text-slate-600">메뉴</p><p class="mt-0.5 text-[18px] font-extrabold tnum">${list.length}개</p></div>
+  const TOP = 'calc(56px + env(safe-area-inset-top, 0px))';
+  const rail = S.getRestaurants().map(x => railItem(x.id === r.id, `go('restaurant', { restaurant: '${x.id}' })`,
+    `${restPhoto(x, 'w-10 h-10 rounded-[12px] ' + (x.open ? '' : 'opacity-50'))}<span class="text-[11px] leading-[14px] ${x.id === r.id ? 'font-bold' : 'font-medium'} break-keep">${x.name}</span>`,
+    cartQtyOf(m => m.restaurant === x.id), x.name)).join('');
+  const rows = `
+    <div class="px-4 pt-4">
+      <p class="text-[13px] font-medium text-sub">${r.desc}</p>
+      <div class="mt-3 flex flex-wrap gap-1.5">
+        <span class="h-8 px-3 rounded-full bg-subtle text-[12px] font-semibold text-sub flex items-center gap-1">지금 받으면 <b class="text-ink tnum">${r.open ? '약 ' + S.restaurantWait(r.id, pred) + '분' : '-'}</b></span>
+        <span class="h-8 px-3 rounded-full bg-subtle text-[12px] font-semibold text-sub flex items-center gap-1">주방 대기 <b class="text-ink tnum">${q ? q + '분 분량' : '없음'}</b></span>
+        <span class="h-8 px-3 rounded-full bg-subtle text-[12px] font-semibold text-sub flex items-center gap-1">메뉴 <b class="text-ink tnum">${list.length}개</b></span>
+      </div>
+      ${r.open ? '' : '<p class="mt-3 rounded-row bg-[#FDECEE] px-4 py-3 text-[13px] font-semibold text-bad">오늘은 이 식당이 쉬어요. 다른 식당 메뉴를 골라 주세요.</p>'}
     </div>
-    ${r.open ? '' : '<p class="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-[14px] font-semibold text-rose-700">오늘은 이 식당이 쉬어요. 다른 식당 메뉴를 골라 주세요.</p>'}
-    <ul class="mt-3">${list.map(m => rowHTML(m, pred)).join('')}</ul>
-  </div>`;
+    <ul class="px-4 pb-6">${list.map((m, i) => rowHTML(m, pred, i)).join('')}</ul>`;
+  return `
+  <header class="sticky top-0 z-20 bg-white border-b border-line pt-[env(safe-area-inset-top)]">
+    <div class="h-14 px-2 flex items-center gap-1">
+      <button onclick="go('home')" class="w-11 h-11 flex items-center justify-center" aria-label="홈으로"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
+      <div class="min-w-0 leading-tight"><h1 class="text-[18px] font-extrabold truncate">${r.name}</h1><p class="text-[12px] font-medium text-sub">${r.category}</p></div>
+    </div>
+  </header>
+  ${railLayout(rail, rows, TOP)}`;
 }
 
-function rowHTML(m, pred) {
+/* 메뉴 한 줄: 72px 정사각 사진 + 이름·설명·가격·대기 + 담기 스테퍼 */
+function rowStepper(m) {
+  if (!m.orderable) { return ''; }
+  const lines = state.cart.filter(l => l.id === m.menu_id);
+  const qty = lines.reduce((s, l) => s + l.qty, 0);
+  if (!qty) {
+    return `<button onclick="quickAdd(${m.menu_id}); render()" aria-label="${m.name} 담기" class="w-11 h-11 -mr-1.5 -mb-1.5 flex items-center justify-center shrink-0"><span class="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center"><i data-lucide="plus" class="w-[18px] h-[18px] sw-bold"></i></span></button>`;
+  }
+  const last = lines[lines.length - 1];
+  return `<div class="flex items-center h-8 rounded-full bg-subtle shrink-0">
+    <button onclick="changeLine('${last.key}',-1); render()" class="w-8 h-8 flex items-center justify-center" aria-label="${m.name} 하나 빼기"><i data-lucide="minus" class="w-4 h-4"></i></button>
+    <span class="min-w-[18px] text-center text-[14px] font-extrabold tnum">${qty}</span>
+    <button onclick="quickAdd(${m.menu_id}); render()" class="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center" aria-label="${m.name} 하나 더 담기"><i data-lucide="plus" class="w-4 h-4 sw-bold"></i></button>
+  </div>`;
+}
+function rowHTML(m, pred, i, showRest) {
   const reason = !m.restaurantOpen ? '오늘 쉬어요' : m.sold_out ? '품절' : '';
-  return `<li class="py-4 border-b border-slate-100 last:border-0 flex gap-4 ${m.orderable ? '' : 'opacity-50'}">
-    <button onclick="openDetail(${m.menu_id})" class="flex-1 min-w-0 text-left flex flex-col gap-1">
-      <span class="flex gap-1">${tag(m.tag)}${reason ? tag(reason, 'red') : ''}</span>
-      <span class="text-[17px] font-extrabold">${m.name}</span>
-      <span class="text-[13px] text-slate-500 leading-snug">${m.desc}</span>
-      <span class="text-[15px] font-extrabold tnum">${won(m.price)} <span class="text-[12px] font-medium text-slate-500">지금 ${S.menuWait(m, pred)}분 · ${m.kcal}kcal</span></span>
-    </button>
-    <span class="relative shrink-0">
-      ${photo(m, 'w-24 h-24 rounded-xl')}
-      ${m.orderable ? `<button onclick="quickAdd(${m.menu_id})" aria-label="${m.name} 담기" class="absolute -right-1 -bottom-1 w-11 h-11 flex items-center justify-center"><span class="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center"><i data-lucide="plus" class="w-5 h-5"></i></span></button>` : ''}
-    </span>
+  const w = S.menuWait(m, pred);
+  const tone = { ok: 'text-ok', warn: 'text-warn', bad: 'text-bad' }[waitTone(w)];
+  return `<li class="fu grid grid-cols-[72px_1fr] gap-3 py-4 border-b border-line last:border-0" style="--i:${Math.min(i || 0, 12)}">
+    <button onclick="openDetail(${m.menu_id})" class="self-start ${m.orderable ? '' : 'opacity-50'}" aria-label="${m.name} 자세히 보기">${photo(m, 'w-[72px] h-[72px] rounded-row')}</button>
+    <div class="min-w-0 flex flex-col">
+      <button onclick="openDetail(${m.menu_id})" class="text-left min-w-0 ${m.orderable ? '' : 'opacity-50'}">
+        <span class="block text-[12px] font-medium text-sub truncate">${showRest ? `<b class="font-semibold">${m.restaurantName}</b> · ` : ''}${m.kcal}kcal · 단백질 ${m.protein}g</span>
+        <span class="flex items-center gap-1.5 min-w-0"><span class="text-[16px] font-bold leading-snug truncate">${m.name}</span>${reason ? tag(reason, 'red') : ''}</span>
+        <span class="mt-0.5 block text-[13px] font-medium leading-[18px] text-sub line-clamp-2">${m.desc}</span>
+      </button>
+      <div class="mt-2 flex items-center gap-2">
+        <span class="text-[15px] font-extrabold tnum ${m.orderable ? '' : 'opacity-50'}">${won(m.price)}</span>
+        <span class="h-[22px] px-1.5 rounded-full bg-subtle text-[11px] font-bold flex items-center gap-0.5 tnum ${m.orderable ? tone : 'text-weak'}"><i data-lucide="timer" class="w-3 h-3"></i>${w}분</span>
+        <span class="ml-auto"></span>
+        ${rowStepper(m)}
+      </div>
+    </div>
   </li>`;
 }
 
@@ -483,37 +529,24 @@ function renderMenu() {
   let list = menus().filter(m => (state.category === '전체' || m.category === state.category) && (!state.soupOnly || m.soup));
   const key = { fast: m => S.menuWait(m, pred), price: m => m.price, protein: m => -m.protein, kcal: m => m.kcal }[state.sort];
   list.sort((a, b) => (b.orderable - a.orderable) || key(a) - key(b));
+  const TOP = 'calc(108px + env(safe-area-inset-top, 0px))';
+  const pill = on => `shrink-0 h-9 px-3.5 rounded-full text-[13px] font-semibold ${on ? 'bg-accent text-white' : 'bg-subtle text-sub'}`;
+  const rail = cats.map(c => railItem(state.category === c, `state.category='${c}'; render()`,
+    `<span class="text-[14px] leading-tight ${state.category === c ? 'font-extrabold' : 'font-medium'}">${c}</span>`,
+    c === '전체' ? 0 : cartQtyOf(m => m.category === c), c)).join('');
+  const rows = `<div class="px-4">
+      <p class="pt-3 text-[12px] font-medium text-sub">${list.length}개 메뉴</p>
+      ${list.length ? `<ul class="pb-6">${list.map((m, i) => rowHTML(m, pred, i, true)).join('')}</ul>` : '<p class="py-16 text-center text-[14px] text-sub">이 분류에는 오늘 준비한 메뉴가 없어요.</p>'}
+    </div>`;
   return `
-  <header class="sticky top-0 z-10 bg-white/95 backdrop-blur pt-[max(10px,env(safe-area-inset-top))]">
-    <h1 class="px-5 h-12 flex items-center text-[22px] font-extrabold">오늘의 메뉴</h1>
-    <div class="flex gap-5 px-5 border-b border-slate-100 overflow-x-auto no-scrollbar">
-      ${cats.map(c => `<button onclick="state.category='${c}'; render()" class="h-11 shrink-0 text-[16px] ${state.category === c ? 'font-extrabold text-slate-900 border-b-2 border-slate-900' : 'font-medium text-slate-500'}">${c}</button>`).join('')}
-    </div>
-    <div class="flex gap-2 px-5 py-3 overflow-x-auto no-scrollbar">
-      ${sorts.map(([k, l]) => `<button onclick="state.sort='${k}'; render()" class="shrink-0 h-9 px-3.5 rounded-full text-[14px] font-semibold ${state.sort === k ? 'bg-slate-900 text-white' : 'border border-slate-200 text-slate-700'}">${l}</button>`).join('')}
-      <button onclick="state.soupOnly=!state.soupOnly; render()" aria-pressed="${!!state.soupOnly}" class="shrink-0 h-9 px-3.5 rounded-full text-[14px] font-semibold ${state.soupOnly ? 'bg-blue-50 text-blue-800 ring-2 ring-blue-500' : 'border border-slate-200 text-slate-700'}">국물 있는 것만</button>
+  <header class="sticky top-0 z-20 bg-white border-b border-line pt-[env(safe-area-inset-top)]">
+    <h1 class="px-5 h-14 flex items-center text-[24px] font-extrabold">오늘의 메뉴</h1>
+    <div class="h-[52px] flex items-center gap-2 px-5 overflow-x-auto no-scrollbar">
+      ${sorts.map(([k, l]) => `<button onclick="state.sort='${k}'; render()" class="${pill(state.sort === k)}">${l}</button>`).join('')}
+      <button onclick="state.soupOnly=!state.soupOnly; render()" aria-pressed="${!!state.soupOnly}" class="${pill(state.soupOnly)}">국물 있는 것만</button>
     </div>
   </header>
-  <div class="px-5">
-    <p class="pt-1 text-[13px] text-slate-500">${list.length}개 메뉴</p>
-    ${list.length ? list.map(m => `<article class="py-4 border-b border-slate-100 last:border-0 ${m.orderable ? '' : 'opacity-50'}">
-      <button onclick="openDetail(${m.menu_id})" class="relative block w-full text-left">
-        ${photo(m, 'w-full h-[188px] rounded-2xl')}
-        <span class="absolute top-3 left-3 h-7 px-2.5 rounded-full bg-white text-[12px] font-bold flex items-center">${m.tag}</span>
-        <span class="absolute left-3 bottom-3 h-7 px-2.5 rounded-full bg-white text-[12px] font-bold flex items-center gap-1"><i data-lucide="timer" class="w-3.5 h-3.5 text-blue-500"></i>지금 주문 시 ${S.menuWait(m, pred)}분</span>
-        ${m.orderable ? '' : `<span class="absolute inset-0 rounded-2xl bg-white/60 flex items-center justify-center"><span class="h-8 px-3 rounded-full bg-slate-900 text-white text-[13px] font-bold flex items-center">${m.restaurantOpen ? '오늘 준비한 수량이 다 나갔어요' : '오늘은 식당이 쉬어요'}</span></span>`}
-      </button>
-      <div class="mt-3 flex items-start gap-3">
-        <button onclick="openDetail(${m.menu_id})" class="flex-1 text-left">
-          <span class="block text-[12px] font-semibold text-blue-700">${m.restaurantName}</span>
-          <span class="block text-[18px] font-extrabold">${m.name}</span>
-          <span class="block mt-0.5 text-[13px] text-slate-500">${m.kcal}kcal · 단백질 ${m.protein}g · ${m.desc}</span>
-        </button>
-        <span class="text-right shrink-0"><span class="block text-[17px] font-extrabold tnum">${won(m.price)}</span>
-          ${m.orderable ? `<button onclick="quickAdd(${m.menu_id})" class="mt-2 h-9 px-3 rounded-full bg-blue-50 text-blue-700 text-[13px] font-bold">담기</button>` : ''}</span>
-      </div>
-    </article>`).join('') : '<p class="py-16 text-center text-slate-500">이 분류에는 오늘 준비한 메뉴가 없어요.</p>'}
-  </div>`;
+  ${railLayout(rail, rows, TOP)}`;
 }
 
 /* ---------- AI 추천 탭 ---------- */
