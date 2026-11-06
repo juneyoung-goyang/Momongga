@@ -21,8 +21,15 @@
       extend: {
         colors: {
           blue:  { 50: '#E8F3FF', 100: '#C9E2FF', 200: '#90C2FF', 300: '#64A8FF', 400: '#5498F8', 500: '#3182F6', 600: '#2272EB', 700: '#1B64DA', 800: '#1957C2', 900: '#194AA6' },
-          slate: { 50: '#F9FAFB', 100: '#F2F4F6', 200: '#E5E8EB', 300: '#D1D6DB', 400: '#B0B8C1', 500: '#6B7684', 600: '#4E5968', 700: '#333D4B', 800: '#333D4B', 900: '#191F28' }
+          slate: { 50: '#F9FAFB', 100: '#F2F4F6', 200: '#E5E8EB', 300: '#D1D6DB', 400: '#B0B8C1', 500: '#6B7684', 600: '#4E5968', 700: '#333D4B', 800: '#333D4B', 900: '#191F28' },
+          bg: '#FFFFFF', subtle: '#F4F5F7', line: '#EEF0F2',
+          ink: '#191F28', sub: '#6B7684', weak: '#A0A7B0',
+          accent: { DEFAULT: '#3182F6', press: '#1B64DA', soft: '#E8F3FF' },
+          ok: '#03B26C', warn: '#FE9800', bad: '#F04452'
         },
+        borderRadius: { row: '14px', card: '20px', sheet: '28px' },
+        boxShadow: { card: '0 6px 20px rgba(25,31,40,.08)' },
+        transitionTimingFunction: { out: 'cubic-bezier(.2,.8,.2,1)' },
         fontFamily: { sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', '"Apple SD Gothic Neo"', '"Malgun Gothic"', 'system-ui', 'sans-serif'] }
       }
     }
@@ -30,23 +37,51 @@
 </script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
+  :root {
+    --bg: #FFFFFF; --subtle: #F4F5F7; --line: #EEF0F2;
+    --ink: #191F28; --sub: #6B7684; --weak: #A0A7B0;
+    --accent: #3182F6; --accent-press: #1B64DA; --accent-soft: #E8F3FF;
+    --ok: #03B26C; --warn: #FE9800; --bad: #F04452;
+    --r-row: 14px; --r-card: 20px; --r-sheet: 28px;
+    --shadow: 0 6px 20px rgba(25,31,40,.08);
+    --ease: cubic-bezier(.2,.8,.2,1);
+  }
   html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
-  body { font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; letter-spacing: -0.012em; word-break: keep-all; }
+  body { font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; letter-spacing: -0.012em; word-break: keep-all; color: var(--ink); }
   h1, h2, h3 { letter-spacing: -0.03em; }
   .tnum { font-variant-numeric: tabular-nums; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { scrollbar-width: none; }
+  .lucide { stroke-width: 1.75; }
+  .lucide.sw-bold { stroke-width: 2.25; }
+  button, label[role="button"] { transition: transform 200ms var(--ease), background-color 200ms var(--ease), color 200ms var(--ease); }
+  button:not(:disabled):active { transform: scale(.97); }
   button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #5498F8; outline-offset: 2px; }
-  .sheet { transform: translateY(102%); transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1); }
+  .sheet { transform: translateY(102%); transition: transform 280ms var(--ease); }
   .sheet.open { transform: translateY(0); }
-  .fade { opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+  .fade { opacity: 0; pointer-events: none; transition: opacity 240ms var(--ease); }
   .fade.open { opacity: 1; pointer-events: auto; }
-  .cartbar { transform: translateY(140%); transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .cartbar { transform: translateY(160%); transition: transform 280ms var(--ease); }
   .cartbar.show { transform: translateY(0); }
-  @keyframes pop { 0% { transform: scale(0.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-  .pop { animation: pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
-  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-  .rise { animation: rise 0.25s ease-out; }
+  @keyframes pop { 0% { transform: scale(0.94); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  .pop { animation: pop 260ms var(--ease); }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .rise { animation: rise 240ms var(--ease) both; }
+  /* 화면 첫 렌더에서만 목록이 8px 올라오며 나타나요 (30ms 간격) */
+  #view[data-anim="1"] .fu { animation: rise 260ms var(--ease) both; animation-delay: calc(var(--i, 0) * 30ms); }
+  .card { background: #fff; border-radius: var(--r-card); box-shadow: var(--shadow); }
+  /* 왼쪽 분류 레일: 선택한 칸이 오른쪽 목록과 이어지는 홈(notch) */
+  .rail { background: var(--subtle); }
+  .rail-item { position: relative; }
+  .rail-item[aria-current="true"] { background: #fff; border-radius: 14px 0 0 14px; }
+  .rail-item[aria-current="true"]::before, .rail-item[aria-current="true"]::after { content: ''; position: absolute; right: 0; width: 14px; height: 14px; pointer-events: none; }
+  .rail-item[aria-current="true"]::before { top: -14px; border-bottom-right-radius: 14px; box-shadow: 5px 5px 0 5px #fff; }
+  .rail-item[aria-current="true"]::after { bottom: -14px; border-top-right-radius: 14px; box-shadow: 5px -5px 0 5px #fff; }
+  .rail-item[aria-current="true"] .rail-mark { opacity: 1; }
+  .rail-mark { opacity: 0; }
+  .opt input:checked + .opt-face { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .opt input:checked + .opt-face .opt-sub { color: rgba(255,255,255,.85); }
+  .opt input:focus-visible + .opt-face { outline: 3px solid #5498F8; outline-offset: 2px; }
   @keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
   .dots span { animation: blink 1.2s infinite; }
   .dots span:nth-child(2) { animation-delay: 0.15s; }
@@ -56,12 +91,12 @@
   .tick-draw { stroke-dasharray: 48; stroke-dashoffset: 48; animation: draw 0.35s 0.6s ease-out forwards; }
   details > summary { list-style: none; cursor: pointer; }
   details > summary::-webkit-details-marker { display: none; }
-  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } .ring-draw, .tick-draw { stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; } .ring-draw, .tick-draw { stroke-dashoffset: 0; } button:not(:disabled):active { transform: none; } }
 </style>
 </head>
-<body class="bg-slate-100 text-slate-900 antialiased">
+<body class="bg-subtle text-ink antialiased">
 
-<div id="app" class="relative max-w-[430px] mx-auto min-h-screen bg-white shadow-xl shadow-slate-900/5">
+<div id="app" class="relative max-w-[430px] mx-auto min-h-screen bg-white overflow-x-clip">
   <main id="view" class="pb-40"></main>
 </div>
 
@@ -163,7 +198,7 @@ function hasBatchim(w) { const c = w.charCodeAt(w.length - 1); return c >= 0xAC0
 function josa(w, a, b) { return w + (hasBatchim(w) ? a : b); }
 function photo(m, cls) {
   const tone = m.tone || ['#F2F4F6', '#E5E8EB'];
-  const ill = `<span class="absolute inset-0 flex items-center justify-center" style="background: linear-gradient(135deg, ${tone[0]}, ${tone[1]}); container-type: inline-size"><span class="flex items-center justify-center rounded-full bg-white/55" style="width: 64%; aspect-ratio: 1"><span class="leading-none select-none" style="font-size: 34cqw">${m.emoji}</span></span></span>`;
+  const ill = `<span class="absolute inset-0 flex items-center justify-center" style="background: ${tone[0]}; container-type: inline-size"><span class="flex items-center justify-center rounded-full bg-white/60" style="width: 64%; aspect-ratio: 1"><span class="leading-none select-none" style="font-size: 34cqw">${m.emoji}</span></span></span>`;
   return `<span class="relative block overflow-hidden bg-slate-100 ${cls}">${ill}${m.image ? `<img src="${m.image}" alt="" class="absolute inset-0 w-full h-full object-cover" onerror="this.remove()">` : ''}</span>`;
 }
 function restPhoto(r, cls) {
@@ -179,9 +214,17 @@ function toast(text, icon) {
   state.toastTimer = setTimeout(() => el.classList.add('opacity-0', '-translate-y-3'), 2600);
 }
 function tag(text, tone) {
-  const t = { gray: 'bg-slate-100 text-slate-600', blue: 'bg-blue-50 text-blue-800', red: 'bg-rose-50 text-rose-700', dark: 'bg-slate-900 text-white' }[tone || 'gray'];
-  return `<span class="inline-flex items-center h-[22px] px-1.5 rounded-md text-[11px] font-bold ${t}">${text}</span>`;
+  const t = { gray: 'bg-subtle text-sub', blue: 'bg-accent-soft text-accent-press', red: 'bg-[#FDECEE] text-bad', dark: 'bg-ink text-white' }[tone || 'gray'];
+  return `<span class="inline-flex items-center h-[22px] px-2 rounded-full text-[11px] font-bold ${t}">${text}</span>`;
 }
+/* 화면 표시용: 대기 시간 → 상태 색 (원활·보통·혼잡) */
+function waitTone(w) { return w <= 10 ? 'ok' : w <= 15 ? 'warn' : 'bad'; }
+function levelTone(level) { return level === '혼잡' ? 'bad' : level === '보통' ? 'warn' : 'ok'; }
+function waitBadge(w, cls) {
+  const c = { ok: 'text-ok', warn: 'text-warn', bad: 'text-bad' }[waitTone(w)];
+  return `<span class="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-white text-[12px] font-bold tnum ${c} ${cls || ''}"><i data-lucide="timer" class="w-3.5 h-3.5"></i>${w}분</span>`;
+}
+function cartQtyOf(test) { return state.cart.filter(l => { const m = menu(l.id); return m && test(m); }).reduce((s, l) => s + l.qty, 0); }
 
 /* ---------- 개인 맞춤 추천 (앱 안에서 바로 계산) ---------- */
 function todayPicks() {
@@ -268,36 +311,60 @@ function lastMeal() {
 function bannerHTML() {
   const p = S.predict();
   const o = S.openState();
-  const levelColor = p.level === '혼잡' ? 'bg-rose-400' : p.level === '보통' ? 'bg-amber-300' : 'bg-emerald-300';
+  const tone = levelTone(p.level);
+  const dot = { ok: 'bg-ok', warn: 'bg-warn', bad: 'bg-bad' }[tone];
+  const txt = { ok: 'text-ok', warn: 'text-warn', bad: 'text-bad' }[tone];
   const headline = !o.open ? (o.next ? `${o.next}에 다시 열어요` : '오늘 영업이 끝났어요')
-    : p.recTime && p.saving >= 5 ? `${p.recTime}에 오면<br>${p.recWait}분이면 받아요`
-    : `지금 주문하면<br>${p.currentWait}분이면 받아요`;
-  return `<section aria-label="AI 대기 예측" class="mt-5">
-    <div class="flex items-center gap-2">
-      <span class="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center"><i data-lucide="sparkles" class="w-4 h-4"></i></span>
-      <span class="text-[15px] font-bold">AI 대기 예측</span>
-      <button onclick="openWhy()" class="ml-auto h-8 px-3 rounded-full bg-white/15 text-[12px] font-semibold">왜 이 시간인가요?</button>
+    : p.recTime && p.saving >= 5 ? `${p.recTime}에 오면 ${p.recWait}분이면 받아요`
+    : `지금 주문하면 ${p.currentWait}분이면 받아요`;
+  const max = Math.max(1, ...p.timeline.map(x => x.w));
+  const bars = p.timeline.map(x => {
+    const m = S.toMinutes(x.t);
+    const isNow = p.nowMinute >= m && p.nowMinute < m + 10;
+    const isRec = x.t === p.recTime;
+    const hi = isNow || isRec;
+    return `<div class="flex-1 min-w-0 flex flex-col items-center justify-end gap-1 relative">
+      <div class="w-full max-w-[8px] rounded-full ${isRec ? 'bg-accent' : isNow ? 'bg-accent/45' : 'bg-[#E5E8EB]'}" style="height:${Math.max(10, Math.round(x.w / max * 100))}%"></div>
+      ${hi ? `<span class="absolute -bottom-[18px] text-[10px] font-bold whitespace-nowrap ${isRec ? 'text-accent' : 'text-ink'}">${isNow ? '지금' : x.t}</span>` : ''}
+    </div>`;
+  }).join('');
+  const showReserve = o.open && p.recTime && p.saving >= 5;
+  const last = lastMeal();
+  return `<section aria-label="AI 대기 예측" class="card mx-5 mt-4 p-5 fu" style="--i:1">
+    <div class="grid grid-cols-2 gap-3">
+      <div class="rounded-row bg-subtle px-3.5 py-3">
+        <p class="text-[12px] font-medium text-sub">현재 식당 혼잡도</p>
+        <p class="mt-1 text-[22px] leading-[32px] font-extrabold flex items-center gap-2 ${txt}"><span class="w-2.5 h-2.5 rounded-full ${dot}"></span>${p.level}</p>
+      </div>
+      <div class="rounded-row bg-subtle px-3.5 py-3">
+        <p class="text-[12px] font-medium text-sub">AI 예측 대기 시간</p>
+        <p class="mt-1 text-[32px] leading-[32px] font-extrabold tnum">${p.currentWait}<span class="text-[16px] font-bold ml-0.5">분</span></p>
+      </div>
     </div>
-    <p class="mt-3 text-[25px] leading-[33px] font-extrabold">${headline}</p>
-    <div class="mt-4 grid grid-cols-3 gap-2">
-      <div class="rounded-2xl bg-white/10 px-3 py-2.5"><p class="text-[12px] text-white/85">평균 대기</p><p class="mt-0.5 text-[20px] font-extrabold tnum">${p.currentWait}분</p></div>
-      <div class="rounded-2xl bg-white/10 px-3 py-2.5"><p class="text-[12px] text-white/85">혼잡도</p><p class="mt-0.5 text-[20px] font-extrabold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full ${levelColor}"></span>${p.level}</p></div>
-      <div class="rounded-2xl bg-white/10 px-3 py-2.5"><p class="text-[12px] text-white/85">AI 추천</p><p class="mt-0.5 text-[20px] font-extrabold text-blue-100 tnum">${p.recTime || '지금'}</p></div>
-    </div>
-    ${(() => {
-      const showReserve = o.open && p.recTime && p.saving >= 5;
-      const last = lastMeal();
-      if (!showReserve && !last) { return ''; }
-      return `<div class="mt-4 flex gap-2">
-        ${showReserve ? `<button onclick="chooseReserve()" class="flex-1 min-w-0 h-14 px-4 rounded-2xl bg-white text-blue-900 flex items-center gap-2 text-left">
-          <i data-lucide="calendar-clock" class="w-5 h-5 shrink-0"></i>
-          <span class="min-w-0"><span class="block text-[15px] font-bold whitespace-nowrap">${p.recTime} 예약 주문</span><span class="block text-[11px] font-semibold text-blue-700">${p.saving}분 덜 기다려요</span></span></button>` : ''}
-        ${last ? `<button onclick="openDetail(${last.menu.menu_id})" class="${showReserve ? 'w-[150px] shrink-0' : 'flex-1'} h-14 pl-2 pr-3 rounded-2xl bg-white/15 flex items-center gap-2 text-left" aria-label="${last.when} 먹은 메뉴 ${last.menu.name} 다시 보기">
-          ${photo(last.menu, 'w-10 h-10 rounded-xl shrink-0')}
-          <span class="min-w-0"><span class="block text-[11px] text-white/85 whitespace-nowrap">${last.when} 먹은</span><span class="block text-[13px] font-bold truncate">${last.menu.short}</span></span></button>` : ''}
-      </div>`;
-    })()}
+    <div class="mt-5 h-[64px] flex gap-[3px] px-1" role="img" aria-label="시간대별 예상 대기. 지금 ${p.currentWait}분${p.recTime ? ', ' + p.recTime + ' ' + p.recWait + '분' : ''}">${bars}</div>
+    <div class="h-[18px]"></div>
+    <p class="mt-3 text-[20px] leading-[28px] font-extrabold">${headline}</p>
+    ${showReserve || last ? `<div class="mt-4 flex gap-2">
+      ${showReserve ? `<button onclick="chooseReserve()" class="flex-1 min-w-0 h-14 px-4 rounded-row bg-accent active:bg-accent-press text-white flex items-center gap-2.5 text-left">
+        <i data-lucide="clock" class="w-5 h-5 shrink-0"></i>
+        <span class="min-w-0"><span class="block text-[15px] font-bold whitespace-nowrap">${p.recTime} 예약 주문</span><span class="block text-[12px] font-medium text-white/85">${p.saving}분 덜 기다려요</span></span></button>` : ''}
+      ${last ? `<button onclick="openDetail(${last.menu.menu_id})" class="${showReserve ? 'w-[148px] shrink-0' : 'flex-1'} h-14 pl-2 pr-3 rounded-row bg-subtle flex items-center gap-2 text-left" aria-label="${last.when} 먹은 메뉴 ${last.menu.name} 다시 보기">
+        ${photo(last.menu, 'w-10 h-10 rounded-[10px] shrink-0')}
+        <span class="min-w-0"><span class="block text-[11px] text-sub whitespace-nowrap">${last.when} 먹은</span><span class="block text-[13px] font-bold truncate">${last.menu.short}</span></span></button>` : ''}
+    </div>` : ''}
+    <button onclick="openWhy()" class="mt-3 h-9 -ml-1 px-1 text-[13px] font-semibold text-sub flex items-center gap-1"><i data-lucide="chart-column" class="w-4 h-4"></i>왜 이 시간인가요?<i data-lucide="chevron-right" class="w-4 h-4"></i></button>
   </section>`;
+}
+
+function homeCard(m, pred, sold, i) {
+  return `<button onclick="openDetail(${m.menu_id})" class="fu shrink-0 w-[140px] text-left" style="--i:${i}">
+    <span class="relative block">${photo(m, 'w-[140px] h-[140px] rounded-row')}
+      ${waitBadge(S.menuWait(m, pred), 'absolute left-2 bottom-2')}
+      ${sold ? `<span class="absolute left-2 top-2 h-6 px-2 rounded-full bg-ink/80 text-white text-[11px] font-bold flex items-center">오늘 ${sold}그릇</span>` : ''}</span>
+    <span class="block mt-2.5 text-[15px] font-bold leading-tight truncate">${m.name}</span>
+    <span class="block mt-0.5 text-[12px] font-medium text-sub">${m.restaurantName}</span>
+    <span class="block mt-1 text-[15px] font-extrabold text-ink tnum">${won(m.price)}</span>
+  </button>`;
 }
 
 function renderHome() {
@@ -310,72 +377,57 @@ function renderHome() {
   const fast = menus().filter(m => m.orderable).sort((a, b) => S.menuWait(a, pred) - S.menuWait(b, pred)).slice(0, 6);
   const rests = S.getRestaurants();
   return `
-  <header class="bg-blue-900 text-white px-5 pt-[max(14px,env(safe-area-inset-top))] pb-10">
-    <div class="flex items-center gap-2 h-11">
-      <i data-lucide="map-pin" class="w-[18px] h-[18px] text-blue-200 shrink-0"></i>
-      <span class="text-[17px] font-bold truncate">명지전문대 학생식당</span>
-      <span class="ml-auto shrink-0 h-7 px-2.5 rounded-full text-[12px] font-bold flex items-center gap-1.5 whitespace-nowrap ${o.open ? 'bg-white/15' : 'bg-rose-500/30'}"><span class="w-1.5 h-1.5 rounded-full ${o.open ? 'bg-emerald-300' : 'bg-rose-300'}"></span>${o.open ? '영업 중' : o.label}${o.until ? ' ~' + o.until : ''}</span>
+  <header class="bg-white px-5 pt-[max(14px,env(safe-area-inset-top))]">
+    <div class="flex items-center gap-2 h-12">
+      <h1 class="text-[24px] font-extrabold truncate">MJC Table</h1>
+      <span class="ml-auto shrink-0 h-7 px-2.5 rounded-full text-[12px] font-bold flex items-center gap-1.5 whitespace-nowrap ${o.open ? 'bg-subtle text-ink' : 'bg-[#FDECEE] text-bad'}"><span class="w-1.5 h-1.5 rounded-full ${o.open ? 'bg-ok' : 'bg-bad'}"></span>${o.open ? '영업 중' : o.label}${o.until ? ' ~' + o.until : ''}</span>
     </div>
-    <button onclick="go('ai')" class="mt-3 w-full h-12 rounded-full bg-white text-left px-5 flex items-center gap-2 text-[15px] text-slate-500">
-      <span class="flex-1">오늘은 뭐 먹지? "고기 말고 국물"</span><i data-lucide="search" class="w-5 h-5 text-slate-900"></i>
+    <p class="-mt-1 text-[13px] font-medium text-sub flex items-center gap-1"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i>명지전문대 학생식당</p>
+    <button onclick="go('ai')" class="mt-3 w-full h-12 rounded-full bg-subtle text-left px-4 flex items-center gap-2.5 text-[15px] font-medium text-weak">
+      <i data-lucide="search" class="w-5 h-5 text-sub shrink-0"></i><span class="flex-1 truncate">오늘은 뭐 먹지? "고기 말고 국물"</span>
     </button>
-    ${bannerHTML()}
   </header>
 
-  <div class="relative -mt-5 bg-white rounded-t-3xl pt-6">
-    ${member && pick ? `<section class="px-5">
-      <h2 class="text-[20px] font-extrabold">${esc(prof.name)}님을 위한 오늘 추천</h2>
-      <button onclick="openDetail(${pick.menu.menu_id})" class="mt-3 w-full text-left rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex">
-        ${photo(pick.menu, 'w-[120px] h-[136px] shrink-0')}
-        <span class="flex-1 p-4 flex flex-col">
+  ${bannerHTML()}
+
+  <div class="pt-7">
+    <div class="grid grid-cols-5 gap-x-1 gap-y-4 px-3" role="list" aria-label="식당">
+      ${rests.map((r, i) => { const q = pred.queues[r.id]; return `<button role="listitem" onclick="go('restaurant', { restaurant: '${r.id}' })" class="fu flex flex-col items-center gap-1 ${r.open ? '' : 'opacity-50'}" style="--i:${i + 2}" aria-label="${r.name}${r.open ? '' : ' (오늘 휴무)'}">
+        ${restPhoto(r, 'w-14 h-14 rounded-row')}
+        <span class="mt-0.5 text-[12px] font-semibold leading-tight text-ink text-center break-keep">${r.name}</span>
+        ${r.open ? (typeof q === 'number' ? `<span class="text-[11px] font-medium text-sub tnum">대기 ${q}분</span>` : '') : '<span class="text-[11px] font-bold text-bad">휴무</span>'}
+      </button>`; }).join('')}
+    </div>
+
+    ${member && pick ? `<section class="px-5 mt-8">
+      <h2 class="text-[18px] font-extrabold">${esc(prof.name)}님을 위한 오늘 추천</h2>
+      <button onclick="openDetail(${pick.menu.menu_id})" class="fu mt-3 w-full text-left card p-3 grid grid-cols-[96px_1fr] gap-3.5" style="--i:4">
+        ${photo(pick.menu, 'w-24 h-24 rounded-row')}
+        <span class="min-w-0 flex flex-col">
           <span class="flex flex-wrap gap-1">${pick.reasons.map(r => tag(r, 'blue')).join('')}</span>
-          <span class="mt-2 text-[17px] font-extrabold leading-snug">${pick.menu.name}</span>
-          <span class="text-[12px] text-slate-500">${pick.menu.restaurantName}</span>
-          <span class="mt-auto text-[15px] font-bold tnum">${won(pick.menu.price)} <span class="text-[13px] font-medium text-slate-500">${pick.menu.kcal}kcal</span></span>
+          <span class="mt-1.5 text-[16px] font-bold leading-snug truncate">${pick.menu.name}</span>
+          <span class="text-[12px] font-medium text-sub">${pick.menu.restaurantName}</span>
+          <span class="mt-auto text-[15px] font-extrabold tnum">${won(pick.menu.price)} <span class="text-[12px] font-medium text-sub">${pick.menu.kcal}kcal</span></span>
         </span>
       </button>
     </section>` : ''}
-    ${!member ? `<section>
-      <div class="px-5 flex items-baseline justify-between"><h2 class="text-[20px] font-extrabold">오늘의 추천 메뉴</h2><span class="text-[12px] text-slate-500">오늘 인기와 대기 기준</span></div>
+    ${!member ? `<section class="mt-8">
+      <div class="px-5 flex items-baseline justify-between"><h2 class="text-[18px] font-extrabold">오늘의 추천 메뉴</h2><span class="text-[12px] font-medium text-sub">오늘 인기와 대기 기준</span></div>
       <div class="mt-3 flex gap-3 overflow-x-auto no-scrollbar px-5 pb-1">
-        ${picks.map(x => `<button onclick="openDetail(${x.menu.menu_id})" class="shrink-0 w-[150px] text-left">
-          <span class="relative block">${photo(x.menu, 'w-[150px] h-[112px] rounded-2xl')}
-            <span class="absolute left-2 bottom-2 h-6 px-2 rounded-full bg-white text-[12px] font-bold flex items-center gap-1"><i data-lucide="timer" class="w-3.5 h-3.5 text-blue-500"></i>${S.menuWait(x.menu, pred)}분</span>
-            ${x.sold ? `<span class="absolute left-2 top-2 h-6 px-2 rounded-full bg-slate-900/80 text-white text-[11px] font-bold flex items-center">오늘 ${x.sold}그릇</span>` : ''}</span>
-          <span class="block mt-2 text-[15px] font-bold leading-tight">${x.menu.name}</span>
-          <span class="block text-[12px] text-slate-500">${x.menu.restaurantName}</span>
-          <span class="block mt-0.5 text-[15px] font-extrabold tnum">${won(x.menu.price)}</span>
-        </button>`).join('')}
+        ${picks.map((x, i) => homeCard(x.menu, pred, x.sold, i + 3)).join('')}
       </div>
-      <div class="mx-5 mt-4 rounded-2xl bg-blue-50 p-4 flex items-center gap-3">
-        <span class="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center shrink-0"><i data-lucide="user" class="w-5 h-5"></i></span>
-        <p class="flex-1 text-[13px] leading-snug text-blue-900"><b class="text-[14px]">로그인하면 나만의 추천</b><br>어제 먹은 메뉴와 남은 칼로리까지 보고 골라 드려요</p>
-        <button onclick="doLogin()" class="h-10 px-3.5 rounded-xl bg-blue-700 text-white text-[13px] font-bold shrink-0">로그인</button>
+      <div class="mx-5 mt-5 rounded-card bg-subtle p-4 flex items-center gap-3">
+        <span class="w-10 h-10 rounded-row bg-white text-accent flex items-center justify-center shrink-0"><i data-lucide="user" class="w-5 h-5"></i></span>
+        <p class="flex-1 text-[13px] font-medium leading-snug text-sub"><b class="block text-[14px] font-bold text-ink">로그인하면 나만의 추천</b>어제 먹은 메뉴와 남은 칼로리까지 보고 골라 드려요</p>
+        <button onclick="doLogin()" class="h-10 px-4 rounded-full bg-accent active:bg-accent-press text-white text-[13px] font-bold shrink-0">로그인</button>
       </div>
     </section>` : ''}
 
-    <div class="mt-7 grid grid-cols-5 gap-x-1 gap-y-4 px-3" role="list" aria-label="식당">
-      ${rests.map(r => `<button role="listitem" onclick="go('restaurant', { restaurant: '${r.id}' })" class="flex flex-col items-center gap-1.5 ${r.open ? '' : 'opacity-50'}" aria-label="${r.name}${r.open ? '' : ' (오늘 휴무)'}">
-        ${restPhoto(r, 'w-14 h-14 rounded-2xl')}
-        <span class="text-[12px] font-medium leading-tight text-slate-700 text-center break-keep">${r.name}</span>
-        ${r.open ? '' : '<span class="-mt-1 text-[11px] font-bold text-rose-600">휴무</span>'}
-      </button>`).join('')}
-    </div>
-
-
-    <div class="h-2 bg-slate-100 mt-7"></div>
-
-    <section class="pt-6 pb-4">
-      <div class="px-5 flex items-baseline justify-between"><h2 class="text-[20px] font-extrabold">지금 가장 빨리 나와요</h2><button onclick="state.sort='fast'; go('menu')" class="text-[14px] font-semibold text-slate-500">전체보기</button></div>
-      <p class="px-5 mt-1 text-[12px] text-slate-500">AI 시간대 예측과 식당별 주방 대기열을 합쳐 계산해요</p>
-      <div class="mt-4 flex gap-3 overflow-x-auto no-scrollbar px-5 pb-1">
-        ${fast.map(m => `<button onclick="openDetail(${m.menu_id})" class="shrink-0 w-[150px] text-left">
-          <span class="relative block">${photo(m, 'w-[150px] h-[112px] rounded-2xl')}
-            <span class="absolute left-2 bottom-2 h-6 px-2 rounded-full bg-white text-[12px] font-bold flex items-center gap-1"><i data-lucide="timer" class="w-3.5 h-3.5 text-blue-500"></i>${S.menuWait(m, pred)}분</span></span>
-          <span class="block mt-2 text-[15px] font-bold leading-tight">${m.name}</span>
-          <span class="block text-[12px] text-slate-500">${m.restaurantName}</span>
-          <span class="block mt-0.5 text-[15px] font-extrabold tnum">${won(m.price)}</span>
-        </button>`).join('')}
+    <section class="pt-8 pb-4">
+      <div class="px-5 flex items-baseline justify-between"><h2 class="text-[18px] font-extrabold">지금 가장 빨리 나와요</h2><button onclick="state.sort='fast'; go('menu')" class="text-[14px] font-semibold text-sub flex items-center">전체보기<i data-lucide="chevron-right" class="w-4 h-4"></i></button></div>
+      <p class="px-5 mt-1 text-[12px] font-medium text-sub">AI 시간대 예측과 식당별 주방 대기열을 합쳐 계산해요</p>
+      <div class="mt-3 flex gap-3 overflow-x-auto no-scrollbar px-5 pb-1">
+        ${fast.map((m, i) => homeCard(m, pred, 0, i + 3)).join('')}
       </div>
     </section>
   </div>`;
@@ -1044,6 +1096,7 @@ function closeLayer(name) {
 /* ---------- 렌더 & 실시간 갱신 ---------- */
 function render() {
   const v = document.getElementById('view');
+  v.dataset.anim = v.dataset.tab !== state.tab ? '1' : ''; v.dataset.tab = state.tab;
   v.innerHTML = { home: renderHome, restaurant: renderRestaurant, menu: renderMenu, ai: renderAI, orders: renderOrders, my: renderMy }[state.tab]();
   renderTabbar();
   renderCartBar();
