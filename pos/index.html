@@ -810,7 +810,7 @@ function orderCard(o) {
   if (o.order_status === 'WAITING') {
     meta = '<span class="tnum">' + hhmm(o.order_time) + ' 접수</span><span class="text-weak">·</span><span data-elapsed="' + o.order_time + '" data-warn="7" class="tnum font-bold">방금</span>';
     actions = '<div class="mt-3 flex gap-2">' +
-      '<button onclick="startCooking(' + o.order_number + ')" class="flex-1 ' + btn + ' bg-ink hover:bg-[#333D4B] text-white">접수하고 조리 시작<i data-lucide="arrow-right" class="w-4 h-4"></i></button>' +
+      '<button onclick="startCooking(' + o.order_number + ')" class="flex-1 ' + btn + ' bg-accent-soft hover:bg-[#DCE8FF] text-accent-press">접수하고 조리 시작<i data-lucide="arrow-right" class="w-4 h-4"></i></button>' +
       '<button onclick="cancelOrder(' + o.order_number + ')" class="' + ghost + ' text-sub hover:text-bad" aria-label="' + orderNo(o.order_number) + ' 주문 취소"><i data-lucide="trash-2" class="w-[18px] h-[18px]"></i></button>' +
     '</div>';
   } else if (o.order_status === 'COOKING') {
@@ -819,7 +819,7 @@ function orderCard(o) {
     middle = '<div class="mt-3">' +
       '<div class="h-1.5 rounded-full bg-subtle overflow-hidden"><div class="progress-fill h-full rounded-full bg-accent" style="width:2%" data-cook-start="' + o.cook_started_at + '" data-cook-dur="' + dur + '"></div></div>' +
       '<p class="mt-1.5 text-[12px] text-slate-500 tnum" data-cook-label>목표 ' + expectedCookMinutes(o) + '분</p></div>';
-    actions = '<button onclick="markReady(' + o.order_number + ')" class="mt-3 w-full ' + btn + ' bg-ink hover:bg-[#333D4B] text-white">준비 완료·픽업 알림<i data-lucide="arrow-right" class="w-4 h-4"></i></button>';
+    actions = '<button onclick="markReady(' + o.order_number + ')" class="mt-3 w-full ' + btn + ' bg-accent-soft hover:bg-[#DCE8FF] text-accent-press">준비 완료·픽업 알림<i data-lucide="arrow-right" class="w-4 h-4"></i></button>';
   } else {
     meta = '<span class="tnum">' + hhmm(o.ready_at || o.order_time) + ' 준비 완료</span><span class="text-weak">·</span><span data-elapsed="' + (o.ready_at || o.order_time) + '" data-warn="10" data-suffix="대기" class="tnum font-bold">방금</span>';
     actions = '<div class="mt-3 flex gap-2">' +
